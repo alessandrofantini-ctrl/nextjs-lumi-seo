@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="it" className="h-full">
-      <body className={`${geist.className} h-full bg-[#0f0f0f] text-white`}>
+      <body className={`${geist.className} h-full bg-[#0f0f0f] text-white antialiased`}>
         <div className="flex h-full">
           <Sidebar />
           <main className="flex-1 overflow-y-auto">{children}</main>
