@@ -55,9 +55,9 @@ export default function ImpostazioniPage() {
         </form>
 
         {/* Info box */}
-        <div className="mt-10 p-4 rounded-lg border border-white/[0.06] bg-white/[0.01]">
-          <p className="text-[11px] font-medium text-white/35 uppercase tracking-wide mb-2">Come funziona</p>
-          <ul className="flex flex-col gap-1.5 text-[12px] text-white/30 list-disc list-inside">
+        <div className="mt-10 p-4 rounded-lg border border-[#e8e8e8] bg-[#f7f7f6]">
+          <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-2">Come funziona</p>
+          <ul className="flex flex-col gap-1.5 text-[12px] text-[#8f8f8f] list-disc list-inside">
             <li>Le key vengono lette dal browser e inviate al backend ad ogni richiesta</li>
             <li>Non vengono mai salvate nel database Supabase</li>
             <li>Se cambi browser o usi la modalità anonima dovrai reinserirle</li>
@@ -80,16 +80,16 @@ function KeyField({ label, value, onChange, placeholder, hint }: {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-white/[0.09] text-white/80 text-[13px] placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-colors"
+        className="w-full px-3 py-2 rounded-lg bg-white border border-[#d9d9d9] text-[#1a1a1a] text-[13px] placeholder:text-[#c0c0c0] focus:outline-none focus:border-[#999] transition-colors"
       />
-      {hint && <p className="text-[11px] text-white/25">{hint}</p>}
+      {hint && <p className="text-[11px] text-[#ababab]">{hint}</p>}
     </div>
   );
 }
 
 function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="text-white/45 hover:text-white/70 underline underline-offset-2">
+    <a href={href} target="_blank" rel="noreferrer" className="text-[#737373] hover:text-[#1a1a1a] underline underline-offset-2">
       {children}
     </a>
   );

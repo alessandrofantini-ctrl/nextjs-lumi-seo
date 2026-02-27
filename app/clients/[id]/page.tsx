@@ -30,17 +30,11 @@ export default function ClientPage() {
   const [client, setClient]   = useState<ClientFull | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-
-  // Edit
   const [editMode, setEditMode] = useState(false);
   const [form, setForm]         = useState<EditForm>({ name: "" });
   const [saving, setSaving]     = useState(false);
-
-  // Delete
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting]           = useState(false);
-
-  // Keyword
   const [newKw, setNewKw]     = useState("");
   const [addingKw, setAddingKw] = useState(false);
 
@@ -100,8 +94,7 @@ export default function ClientPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword: newKw }),
       });
-      setNewKw("");
-      await load();
+      setNewKw(""); await load();
     } finally { setAddingKw(false); }
   }
 
@@ -117,24 +110,24 @@ export default function ClientPage() {
 
   useEffect(() => { load(); }, [clientId]);
 
-  if (loading) return <div className="p-8 text-white/30 text-[13px]">Caricamento…</div>;
-  if (error && !client) return <div className="p-8"><Alert type="error">{error}</Alert></div>;
+  if (loading) return <div className="p-8 text-[#ababab] text-[13px]">Caricamento…</div>;
+  if (error && !client) return <div className="p-8 max-w-xl"><Alert type="error">{error}</Alert></div>;
   if (!client) return null;
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-8 pt-8 pb-6 border-b border-white/[0.06]">
-        <Link href="/clients" className="text-[11px] text-white/30 hover:text-white/60 transition-colors mb-3 inline-block">
+      <div className="px-8 pt-8 pb-6 border-b border-[#e8e8e8] bg-white">
+        <Link href="/clients" className="text-[11px] text-[#ababab] hover:text-[#555] transition-colors mb-3 inline-block">
           ← Tutti i clienti
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-semibold text-white/90">{client.name}</h1>
-            <p className="text-white/35 text-[13px] mt-0.5">
+            <h1 className="text-[21px] font-semibold text-[#1a1a1a]">{client.name}</h1>
+            <p className="text-[#8f8f8f] text-[13px] mt-0.5">
               {[client.sector, client.geo].filter(Boolean).join(" · ") || "—"}
               {client.updated_at && (
-                <span className="ml-3 text-white/20">
+                <span className="ml-3 text-[#c0c0c0]">
                   aggiornato {new Date(client.updated_at).toLocaleDateString("it-IT")}
                 </span>
               )}
@@ -143,13 +136,11 @@ export default function ClientPage() {
           <div className="flex gap-2 shrink-0">
             {!editMode ? (
               <>
-                <Btn onClick={() => { setEditMode(true); setError(null); }}>Modifica</Btn>
-                <Btn variant="ghost" onClick={() => setConfirmDelete(true)}>Elimina</Btn>
+                <Btn variant="ghost" onClick={() => { setEditMode(true); setError(null); }}>Modifica</Btn>
+                <Btn variant="danger" onClick={() => setConfirmDelete(true)}>Elimina</Btn>
               </>
             ) : (
-              <Btn variant="ghost" onClick={() => { setEditMode(false); setError(null); }}>
-                Annulla
-              </Btn>
+              <Btn variant="ghost" onClick={() => { setEditMode(false); setError(null); }}>Annulla</Btn>
             )}
           </div>
         </div>
@@ -157,18 +148,18 @@ export default function ClientPage() {
 
       {/* Confirm delete */}
       {confirmDelete && (
-        <div className="mx-8 mt-6">
+        <div className="px-8 pt-5">
           <Alert type="error">
-            <span>Eliminare <strong>{client.name}</strong> e tutto il suo storico? L&apos;operazione è irreversibile.</span>
+            <p>Eliminare <strong>{client.name}</strong> e tutto il suo storico? L&apos;operazione è irreversibile.</p>
             <div className="flex gap-2 mt-3">
-              <Btn onClick={deleteClient} loading={deleting}>Sì, elimina</Btn>
+              <Btn variant="danger" onClick={deleteClient} loading={deleting}>Sì, elimina</Btn>
               <Btn variant="ghost" onClick={() => setConfirmDelete(false)}>Annulla</Btn>
             </div>
           </Alert>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-[#f7f7f6]">
         <div className="px-8 py-7 max-w-3xl flex flex-col gap-8">
 
           {error && <Alert type="error">{error}</Alert>}
@@ -176,99 +167,78 @@ export default function ClientPage() {
           {/* ── VISUALIZZA ── */}
           {!editMode ? (
             <>
-              <InfoSection title="Profilo">
-                <InfoGrid>
-                  <InfoItem label="URL sito" value={client.url} link />
-                  <InfoItem label="Brand name" value={client.brand_name} />
-                  <InfoItem label="Settore" value={client.sector} />
-                  <InfoItem label="Zona geografica" value={client.geo} />
-                  <InfoItem label="Tono di voce" value={client.tone_of_voice} />
-                  <InfoItem label="Target audience" value={client.target_audience} />
-                </InfoGrid>
-                {client.products_services && (
-                  <InfoBlock label="Prodotti / Servizi" value={client.products_services} />
-                )}
-                {client.usp && <InfoBlock label="USP / Punti di forza" value={client.usp} />}
-                {client.notes && <InfoBlock label="Note strategiche SEO" value={client.notes} />}
-              </InfoSection>
+              {/* Profilo */}
+              <SectionTitle>Profilo</SectionTitle>
+              <Card className="p-5">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-5">
+                  <InfoItem label="URL sito"         value={client.url}            link />
+                  <InfoItem label="Brand name"       value={client.brand_name}     />
+                  <InfoItem label="Settore"          value={client.sector}         />
+                  <InfoItem label="Zona geografica"  value={client.geo}            />
+                  <InfoItem label="Tono di voce"     value={client.tone_of_voice}  />
+                  <InfoItem label="Target audience"  value={client.target_audience}/>
+                </div>
+                {client.products_services && <InfoBlock label="Prodotti / Servizi"  value={client.products_services} />}
+                {client.usp              && <InfoBlock label="USP / Punti di forza" value={client.usp}               />}
+                {client.notes            && <InfoBlock label="Note strategiche SEO" value={client.notes}             />}
+              </Card>
 
-              {/* Storico keyword */}
-              <InfoSection title={`Storico keyword (${client.keyword_history.length})`}>
-                <form onSubmit={addKeyword} className="flex gap-2 mb-4">
-                  <Input
-                    value={newKw}
-                    onChange={(e) => setNewKw(e.target.value)}
-                    placeholder="Aggiungi keyword…"
-                    className="flex-1"
-                  />
-                  <Btn type="submit" loading={addingKw} disabled={!newKw.trim()}>
-                    Aggiungi
-                  </Btn>
-                </form>
+              {/* Keyword */}
+              <div>
+                <SectionTitle>Storico keyword ({client.keyword_history.length})</SectionTitle>
+                <Card className="p-5">
+                  <form onSubmit={addKeyword} className="flex gap-2 mb-4">
+                    <Input value={newKw} onChange={(e) => setNewKw(e.target.value)} placeholder="Aggiungi keyword…" className="flex-1" />
+                    <Btn type="submit" loading={addingKw} disabled={!newKw.trim()}>Aggiungi</Btn>
+                  </form>
+                  {client.keyword_history.length === 0 ? (
+                    <p className="text-[#ababab] text-[13px]">Nessuna keyword ancora.</p>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {client.keyword_history.map((kw) => (
+                          <span key={kw.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#f5f5f4] border border-[#e8e8e8] text-[12px] text-[#555]">
+                            {kw.keyword}
+                            <button onClick={() => deleteKeyword(kw.id)} className="text-[#c0c0c0] hover:text-red-500 transition-colors leading-none">×</button>
+                          </span>
+                        ))}
+                      </div>
+                      <button onClick={clearKeywords} className="mt-3 text-[11px] text-[#c0c0c0] hover:text-red-500 transition-colors">
+                        Svuota storico
+                      </button>
+                    </>
+                  )}
+                </Card>
+              </div>
 
-                {client.keyword_history.length === 0 ? (
-                  <p className="text-white/25 text-[13px]">Nessuna keyword ancora.</p>
-                ) : (
-                  <>
-                    <div className="flex flex-wrap gap-2">
-                      {client.keyword_history.map((kw) => (
-                        <span
-                          key={kw.id}
-                          className="group flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.05] border border-white/[0.07] text-[12px] text-white/60"
-                        >
-                          {kw.keyword}
-                          <button
-                            onClick={() => deleteKeyword(kw.id)}
-                            className="text-white/20 hover:text-red-400 transition-colors leading-none"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <button
-                      onClick={clearKeywords}
-                      className="mt-3 text-[11px] text-white/20 hover:text-red-400 transition-colors"
-                    >
-                      Svuota storico
-                    </button>
-                  </>
-                )}
-              </InfoSection>
-
-              {/* Brief generati */}
-              <InfoSection title={`Brief generati (${client.briefs.length})`}>
+              {/* Brief */}
+              <div>
+                <SectionTitle>Brief generati ({client.briefs.length})</SectionTitle>
                 {client.briefs.length === 0 ? (
-                  <p className="text-white/25 text-[13px]">Nessun brief ancora.</p>
+                  <p className="text-[#ababab] text-[13px]">Nessun brief ancora.</p>
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {client.briefs.map((b) => (
-                      <div
-                        key={b.id}
-                        className="flex items-center justify-between px-4 py-3 rounded-lg border border-white/[0.06] bg-white/[0.01]"
-                      >
+                      <div key={b.id} className="flex items-center justify-between px-4 py-3.5 rounded-lg border border-[#e8e8e8] bg-white hover:border-[#ccc] transition-colors">
                         <div>
-                          <p className="text-[13px] text-white/75 font-medium">{b.keyword}</p>
-                          <p className="text-[11px] text-white/30 mt-0.5">
+                          <p className="text-[13px] font-medium text-[#1a1a1a]">{b.keyword}</p>
+                          <p className="text-[11px] text-[#ababab] mt-0.5">
                             {b.market} · {b.intent} · {new Date(b.created_at).toLocaleDateString("it-IT")}
                           </p>
                         </div>
-                        <Link
-                          href={`/writer?brief_id=${b.id}`}
-                          className="text-[11px] text-white/25 hover:text-white/60 transition-colors"
-                        >
+                        <Link href={`/writer?brief_id=${b.id}`} className="text-[11px] text-[#ababab] hover:text-[#555] transition-colors">
                           Scrivi articolo →
                         </Link>
                       </div>
                     ))}
                   </div>
                 )}
-              </InfoSection>
+              </div>
             </>
           ) : (
             /* ── MODIFICA ── */
             <Card className="p-6">
-              <h2 className="text-[13px] font-semibold text-white/60 mb-5">Modifica profilo</h2>
+              <h2 className="text-[13px] font-semibold text-[#555] mb-5">Modifica profilo</h2>
               <form onSubmit={saveEdit} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
@@ -301,37 +271,22 @@ export default function ClientPage() {
   );
 }
 
-/* ── Componenti locali ── */
-
-function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="text-[11px] font-medium text-white/30 uppercase tracking-wide mb-3">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-function InfoGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-x-8 gap-y-3 mb-4">{children}</div>;
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-3">{children}</p>;
 }
 
 function InfoItem({ label, value, link }: { label: string; value?: string; link?: boolean }) {
-  if (!value) return (
-    <div>
-      <p className="text-[11px] text-white/25">{label}</p>
-      <p className="text-[13px] text-white/20 mt-0.5">—</p>
-    </div>
-  );
   return (
     <div>
-      <p className="text-[11px] text-white/25">{label}</p>
-      {link ? (
-        <a href={value} target="_blank" rel="noreferrer" className="text-[13px] text-white/60 hover:text-white/80 underline underline-offset-2 mt-0.5 inline-block transition-colors">
+      <p className="text-[11px] text-[#ababab] mb-0.5">{label}</p>
+      {!value ? (
+        <p className="text-[13px] text-[#ccc]">—</p>
+      ) : link ? (
+        <a href={value} target="_blank" rel="noreferrer" className="text-[13px] text-[#555] hover:text-[#1a1a1a] underline underline-offset-2 transition-colors">
           {value}
         </a>
       ) : (
-        <p className="text-[13px] text-white/70 mt-0.5">{value}</p>
+        <p className="text-[13px] text-[#333]">{value}</p>
       )}
     </div>
   );
@@ -339,9 +294,9 @@ function InfoItem({ label, value, link }: { label: string; value?: string; link?
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="mb-3">
-      <p className="text-[11px] text-white/25 mb-1">{label}</p>
-      <p className="text-[13px] text-white/65 leading-relaxed whitespace-pre-wrap">{value}</p>
+    <div className="pt-4 border-t border-[#f0f0f0] mt-1">
+      <p className="text-[11px] text-[#ababab] mb-1">{label}</p>
+      <p className="text-[13px] text-[#444] leading-relaxed whitespace-pre-wrap">{value}</p>
     </div>
   );
 }
