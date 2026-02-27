@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { Users, BarChart2, PenLine, Settings } from "lucide-react";
 
 const NAV = [
-  { href: "/clienti", label: "Clienti",   icon: Users     },
-  { href: "/seo",     label: "Analisi SEO", icon: BarChart2  },
-  { href: "/writer",  label: "Redattore",  icon: PenLine   },
+  { href: "/clients", label: "Clienti",     icon: Users     },
+  { href: "/seo",     label: "Analisi SEO", icon: BarChart2 },
+  { href: "/writer",  label: "Redattore",   icon: PenLine   },
 ];
 
 export default function Sidebar() {
