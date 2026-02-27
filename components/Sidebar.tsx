@@ -14,15 +14,15 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-52 shrink-0 flex flex-col bg-[#141414] border-r border-white/[0.07] h-full">
+    <aside className="w-52 shrink-0 flex flex-col bg-white border-r border-[#e8e8e8] h-full">
 
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-white/[0.07]">
+      <div className="px-4 py-5 border-b border-[#e8e8e8]">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-[#7c6af7] flex items-center justify-center">
+          <div className="w-6 h-6 rounded-md bg-[#1a1a1a] flex items-center justify-center">
             <span className="text-[11px] font-bold text-white">L</span>
           </div>
-          <span className="text-sm font-semibold text-white/90 tracking-tight">
+          <span className="text-sm font-semibold text-[#1a1a1a] tracking-tight">
             Lumi SEO Suite
           </span>
         </div>
@@ -39,8 +39,8 @@ export default function Sidebar() {
               className={[
                 "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
                 active
-                  ? "bg-white/[0.08] text-white font-medium"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]",
+                  ? "bg-[#f0f0ef] text-[#1a1a1a] font-medium"
+                  : "text-[#737373] hover:text-[#1a1a1a] hover:bg-[#f5f5f4]",
               ].join(" ")}
             >
               <Icon size={15} strokeWidth={active ? 2 : 1.7} />
@@ -51,14 +51,14 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="p-2 border-t border-white/[0.07]">
+      <div className="p-2 border-t border-[#e8e8e8]">
         <Link
           href="/impostazioni"
           className={[
             "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
             pathname === "/impostazioni"
-              ? "bg-white/[0.08] text-white font-medium"
-              : "text-white/35 hover:text-white/70 hover:bg-white/[0.04]",
+              ? "bg-[#f0f0ef] text-[#1a1a1a] font-medium"
+              : "text-[#ababab] hover:text-[#737373] hover:bg-[#f5f5f4]",
           ].join(" ")}
         >
           <Settings size={15} strokeWidth={1.7} />

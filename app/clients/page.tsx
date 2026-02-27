@@ -95,114 +95,104 @@ export default function ClientsPage() {
         subtitle={`${clients.length} profil${clients.length === 1 ? "o" : "i"} attiv${clients.length === 1 ? "o" : "i"}`}
       />
 
-      <Section>
-        {error && <div className="mb-5"><Alert type="error">{error}</Alert></div>}
+      <div className="flex-1 overflow-y-auto bg-[#f7f7f6]">
+        <Section>
+          {error && <div className="mb-5"><Alert type="error">{error}</Alert></div>}
 
-        {/* Bottone nuovo */}
-        {!showForm ? (
-          <Btn onClick={() => { setShowForm(true); setError(null); }} className="mb-6">
-            + Nuovo cliente
-          </Btn>
-        ) : (
-          /* ── Form nuovo cliente ── */
-          <Card className="mb-8 p-6">
-            <h2 className="text-[13px] font-semibold text-white/70 mb-5">Nuovo profilo cliente</h2>
+          {/* Bottone nuovo */}
+          {!showForm ? (
+            <Btn onClick={() => { setShowForm(true); setError(null); }} className="mb-6">
+              + Nuovo cliente
+            </Btn>
+          ) : (
+            <Card className="mb-8 p-6">
+              <h2 className="text-[13px] font-semibold text-[#555] mb-5">Nuovo profilo cliente</h2>
 
-            {/* Auto-generate */}
-            <div className="mb-5 p-4 rounded-lg bg-white/[0.02] border border-white/[0.06]">
-              <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide mb-3">
-                Genera da URL sito
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  value={autoUrl}
-                  onChange={(e) => setAutoUrl(e.target.value)}
-                  placeholder="https://www.cliente.it"
-                />
-                <Btn onClick={handleAutoGenerate} loading={generating} disabled={!autoUrl} className="shrink-0">
-                  {generating ? "Analisi…" : "Analizza"}
-                </Btn>
-              </div>
-              {!openaiKey && (
-                <p className="text-[11px] text-white/25 mt-2">
-                  ⚠ OpenAI key mancante —{" "}
-                  <Link href="/impostazioni" className="text-white/50 hover:text-white/70 underline underline-offset-2">
-                    Impostazioni
-                  </Link>
+              {/* Auto-generate */}
+              <div className="mb-5 p-4 rounded-lg bg-[#f7f7f6] border border-[#e8e8e8]">
+                <p className="text-[11px] font-medium text-[#737373] uppercase tracking-wide mb-3">
+                  Genera da URL sito
                 </p>
-              )}
-            </div>
-
-            <form onSubmit={createClient} className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Nome identificativo *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Rossi Impianti Srl" /></div>
-                <div><Label>URL sito</Label><Input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://www.cliente.it" /></div>
-                <div><Label>Settore</Label><Input value={form.sector} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))} placeholder="Impianti industriali" /></div>
-                <div><Label>Brand name</Label><Input value={form.brand_name} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} placeholder="Rossi Impianti" /></div>
-                <div><Label>Zona geografica</Label><Input value={form.geo} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Nord Italia" /></div>
-                <div>
-                  <Label>Tono di voce</Label>
-                  <Select value={form.tone_of_voice} onChange={(e) => setForm((f) => ({ ...f, tone_of_voice: e.target.value }))}>
-                    {TONES.map((t) => <option key={t}>{t}</option>)}
-                  </Select>
+                <div className="flex gap-2">
+                  <Input value={autoUrl} onChange={(e) => setAutoUrl(e.target.value)} placeholder="https://www.cliente.it" />
+                  <Btn onClick={handleAutoGenerate} loading={generating} disabled={!autoUrl} className="shrink-0">
+                    {generating ? "Analisi…" : "Analizza"}
+                  </Btn>
                 </div>
-                <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="PMI manifatturiere" /></div>
+                {!openaiKey && (
+                  <p className="text-[11px] text-[#ababab] mt-2">
+                    ⚠ OpenAI key mancante —{" "}
+                    <Link href="/impostazioni" className="text-[#555] hover:text-[#1a1a1a] underline underline-offset-2">
+                      Impostazioni
+                    </Link>
+                  </p>
+                )}
               </div>
-              <div><Label>Prodotti / Servizi *</Label><Textarea rows={4} value={form.products_services} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Un prodotto/servizio per riga" /></div>
-              <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Cosa distingue questo cliente?" /></div>
-              <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Istruzioni particolari per i prompt GPT" /></div>
 
-              <div className="flex gap-2 pt-1">
-                <Btn type="submit" loading={saving}>Salva cliente</Btn>
-                <Btn type="button" variant="ghost" onClick={() => { setShowForm(false); setError(null); setForm(EMPTY); }}>
-                  Annulla
-                </Btn>
-              </div>
-            </form>
-          </Card>
-        )}
+              <form onSubmit={createClient} className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Nome identificativo *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Rossi Impianti Srl" /></div>
+                  <div><Label>URL sito</Label><Input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://www.cliente.it" /></div>
+                  <div><Label>Settore</Label><Input value={form.sector} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))} placeholder="Impianti industriali" /></div>
+                  <div><Label>Brand name</Label><Input value={form.brand_name} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} placeholder="Rossi Impianti" /></div>
+                  <div><Label>Zona geografica</Label><Input value={form.geo} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Nord Italia" /></div>
+                  <div>
+                    <Label>Tono di voce</Label>
+                    <Select value={form.tone_of_voice} onChange={(e) => setForm((f) => ({ ...f, tone_of_voice: e.target.value }))}>
+                      {TONES.map((t) => <option key={t}>{t}</option>)}
+                    </Select>
+                  </div>
+                  <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="PMI manifatturiere" /></div>
+                </div>
+                <div><Label>Prodotti / Servizi *</Label><Textarea rows={4} value={form.products_services} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Un prodotto/servizio per riga" /></div>
+                <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Cosa distingue questo cliente?" /></div>
+                <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Istruzioni particolari per i prompt GPT" /></div>
 
-        {/* Ricerca */}
-        {clients.length > 0 && (
-          <div className="mb-4">
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cerca per nome o settore…"
-            />
+                <div className="flex gap-2 pt-1">
+                  <Btn type="submit" loading={saving}>Salva cliente</Btn>
+                  <Btn type="button" variant="ghost" onClick={() => { setShowForm(false); setError(null); setForm(EMPTY); }}>
+                    Annulla
+                  </Btn>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          {/* Ricerca */}
+          {clients.length > 0 && (
+            <div className="mb-4">
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca per nome o settore…" />
+            </div>
+          )}
+
+          {loading && <p className="text-[#ababab] text-[13px]">Caricamento…</p>}
+
+          <div className="flex flex-col gap-1.5">
+            {filtered.map((c) => (
+              <Link
+                key={c.id}
+                href={`/clients/${c.id}`}
+                className="group flex items-center justify-between px-4 py-3.5 rounded-lg border border-[#e8e8e8] bg-white hover:border-[#ccc] hover:shadow-sm transition-all"
+              >
+                <div>
+                  <p className="text-[13px] font-medium text-[#1a1a1a]">{c.name}</p>
+                  <p className="text-[11px] text-[#ababab] mt-0.5">
+                    {[c.sector, c.tone_of_voice].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
+                <span className="text-[#ccc] group-hover:text-[#999] transition-colors text-sm">→</span>
+              </Link>
+            ))}
           </div>
-        )}
 
-        {/* Lista */}
-        {loading && <p className="text-white/25 text-[13px]">Caricamento…</p>}
-
-        <div className="flex flex-col gap-1.5">
-          {filtered.map((c) => (
-            <Link
-              key={c.id}
-              href={`/clients/${c.id}`}
-              className="group flex items-center justify-between px-4 py-3 rounded-lg border border-white/[0.06] bg-white/[0.01] hover:bg-white/[0.04] hover:border-white/[0.11] transition-all"
-            >
-              <div>
-                <p className="text-[13px] font-medium text-white/80 group-hover:text-white transition-colors">
-                  {c.name}
-                </p>
-                <p className="text-[11px] text-white/30 mt-0.5">
-                  {[c.sector, c.tone_of_voice].filter(Boolean).join(" · ") || "—"}
-                </p>
-              </div>
-              <span className="text-white/15 group-hover:text-white/40 transition-colors text-sm">→</span>
-            </Link>
-          ))}
-        </div>
-
-        {!loading && filtered.length === 0 && clients.length > 0 && (
-          <p className="text-white/25 text-[13px]">Nessun cliente trovato.</p>
-        )}
-        {!loading && clients.length === 0 && !showForm && (
-          <p className="text-white/25 text-[13px]">Nessun profilo ancora. Crea il primo cliente.</p>
-        )}
-      </Section>
+          {!loading && filtered.length === 0 && clients.length > 0 && (
+            <p className="text-[#ababab] text-[13px]">Nessun cliente trovato.</p>
+          )}
+          {!loading && clients.length === 0 && !showForm && (
+            <p className="text-[#ababab] text-[13px]">Nessun profilo ancora. Crea il primo cliente.</p>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

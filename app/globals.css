@@ -3,16 +3,11 @@
 /* ── Scrollbar ── */
 ::-webkit-scrollbar        { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { background: rgba(255,255,255,.1); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.18); }
+::-webkit-scrollbar-thumb  { background: rgba(0,0,0,.14); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.25); }
 
-/* ── Form elements reset ── */
-input, textarea, select, button {
-  font-family: inherit;
-  font-size: inherit;
-}
+/* ── Form elements ── */
+input, textarea, select, button { font-family: inherit; font-size: inherit; }
 
 /* ── Selection ── */
-::selection {
-  background: rgba(124, 106, 247, .35);
-}
+::selection { background: rgba(107, 90, 230, .15); }

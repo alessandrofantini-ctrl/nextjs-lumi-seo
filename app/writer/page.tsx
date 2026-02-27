@@ -70,7 +70,7 @@ export default function WriterPage() {
           <div className="mb-6">
             <Alert type="warn">
               OpenAI key mancante —{" "}
-              <Link href="/impostazioni" className="underline underline-offset-2 hover:text-yellow-300">
+              <Link href="/impostazioni" className="underline underline-offset-2 hover:text-yellow-700">
                 Impostazioni
               </Link>
             </Alert>
@@ -113,7 +113,7 @@ export default function WriterPage() {
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
                 placeholder="Rossi Impianti"
-                className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-white/[0.09] text-white/80 text-[13px] placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-colors"
+                className="w-full px-3 py-2 rounded-lg bg-white border border-[#d9d9d9] text-[#1a1a1a] text-[13px] placeholder:text-[#c0c0c0] focus:outline-none focus:border-[#999] transition-colors"
               />
             </div>
             <div>
@@ -122,7 +122,7 @@ export default function WriterPage() {
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
                 placeholder="https://www.cliente.it/contatti"
-                className="w-full px-3 py-2 rounded-lg bg-[#1a1a1a] border border-white/[0.09] text-white/80 text-[13px] placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-colors"
+                className="w-full px-3 py-2 rounded-lg bg-white border border-[#d9d9d9] text-[#1a1a1a] text-[13px] placeholder:text-[#c0c0c0] focus:outline-none focus:border-[#999] transition-colors"
               />
             </div>
           </div>
@@ -134,12 +134,12 @@ export default function WriterPage() {
                 {LENGTHS.map((l) => <option key={l}>{l}</option>)}
               </Select>
             </div>
-            <label className="flex items-center gap-3 text-[13px] text-white/45 select-none">
+            <label className="flex items-center gap-3 text-[13px] text-[#737373] select-none">
               <span>Creatività {creativity.toFixed(2)}</span>
               <input
                 type="range" min={0} max={1} step={0.05} value={creativity}
                 onChange={(e) => setCreativity(Number(e.target.value))}
-                className="w-28 accent-[#7c6af7]"
+                className="w-28 accent-[#1a1a1a]"
               />
             </label>
           </div>
@@ -152,22 +152,22 @@ export default function WriterPage() {
         </form>
 
         {loading && (
-          <div className="mt-8 px-4 py-5 rounded-lg border border-white/[0.06] bg-white/[0.01]">
-            <p className="text-[13px] text-white/40 animate-pulse">GPT-4o sta scrivendo l&apos;articolo…</p>
-            <p className="text-[11px] text-white/20 mt-1">Può richiedere 30–60 secondi.</p>
+          <div className="mt-8 px-4 py-5 rounded-lg border border-[#e8e8e8] bg-[#f7f7f6]">
+            <p className="text-[13px] text-[#ababab] animate-pulse">GPT-4o sta scrivendo l&apos;articolo…</p>
+            <p className="text-[11px] text-[#c0c0c0] mt-1">Può richiedere 30–60 secondi.</p>
           </div>
         )}
 
         {article && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[12px] text-white/35">Articolo generato</p>
+              <p className="text-[12px] text-[#8f8f8f]">Articolo generato</p>
               <div className="flex gap-2">
                 <Btn variant="ghost" onClick={() => navigator.clipboard.writeText(article)}>Copia</Btn>
                 <Btn variant="ghost" onClick={downloadMd}>Scarica .md</Btn>
               </div>
             </div>
-            <pre className="p-5 rounded-xl border border-white/[0.07] bg-black/30 text-white/70 text-[12.5px] whitespace-pre-wrap leading-relaxed overflow-x-auto">
+            <pre className="p-5 rounded-xl border border-[#e8e8e8] bg-white text-[#444] text-[12.5px] whitespace-pre-wrap leading-relaxed overflow-x-auto">
               {article}
             </pre>
           </div>

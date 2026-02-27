@@ -70,7 +70,7 @@ export default function SeoPage() {
           <div className="mb-6">
             <Alert type="warn">
               API key mancanti —{" "}
-              <Link href="/impostazioni" className="underline underline-offset-2 hover:text-yellow-300">
+              <Link href="/impostazioni" className="underline underline-offset-2 hover:text-yellow-700">
                 configurale in Impostazioni
               </Link>{" "}
               prima di avviare un&apos;analisi.
@@ -118,8 +118,8 @@ export default function SeoPage() {
                 {[3,4,5,6,8,10].map((n) => <option key={n}>{n}</option>)}
               </Select>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-white/45 select-none">
-              <input type="checkbox" checked={schema} onChange={(e) => setSchema(e.target.checked)} className="accent-[#7c6af7]" />
+            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[#737373] select-none">
+              <input type="checkbox" checked={schema} onChange={(e) => setSchema(e.target.checked)} className="accent-[#1a1a1a]" />
               Estrai JSON-LD schema
             </label>
           </div>
@@ -133,11 +133,11 @@ export default function SeoPage() {
 
         {/* Loading state */}
         {loading && (
-          <div className="mt-8 px-4 py-5 rounded-lg border border-white/[0.06] bg-white/[0.01]">
-            <p className="text-[13px] text-white/40 animate-pulse">
+          <div className="mt-8 px-4 py-5 rounded-lg border border-[#e8e8e8] bg-[#f7f7f6]">
+            <p className="text-[13px] text-[#ababab] animate-pulse">
               Recupero SERP → Scraping competitor → Generazione brief con GPT-4o…
             </p>
-            <p className="text-[11px] text-white/20 mt-1">Può richiedere 30–60 secondi.</p>
+            <p className="text-[11px] text-[#c0c0c0] mt-1">Può richiedere 30–60 secondi.</p>
           </div>
         )}
 
@@ -145,14 +145,14 @@ export default function SeoPage() {
         {result && (
           <div className="mt-8">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[12px] text-white/35">
+              <p className="text-[12px] text-[#8f8f8f]">
                 {result.competitors_analysed} competitor analizzati
               </p>
               <Btn variant="ghost" onClick={() => navigator.clipboard.writeText(result.brief_output)}>
                 Copia
               </Btn>
             </div>
-            <pre className="p-5 rounded-xl border border-white/[0.07] bg-black/30 text-white/70 text-[12.5px] whitespace-pre-wrap font-mono leading-relaxed overflow-x-auto">
+            <pre className="p-5 rounded-xl border border-[#e8e8e8] bg-white text-[#444] text-[12.5px] whitespace-pre-wrap font-mono leading-relaxed overflow-x-auto">
               {result.brief_output}
             </pre>
           </div>
