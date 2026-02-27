@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PageHeader, Section, Label, Input, Select, Btn, Alert } from "@/components/ui";
 
@@ -14,10 +15,11 @@ const MARKETS = [
 ];
 const INTENTS = ["Informativo", "Commerciale", "Navigazionale"];
 
-export default function SeoPage() {
+function SeoForm() {
+  const searchParams = useSearchParams();
   const [clients, setClients]       = useState<Client[]>([]);
-  const [keyword, setKeyword]       = useState("");
-  const [clientId, setClientId]     = useState("");
+  const [keyword, setKeyword]       = useState(searchParams.get("keyword") ?? "");
+  const [clientId, setClientId]     = useState(searchParams.get("client_id") ?? "");
   const [market, setMarket]         = useState("🇮🇹 Italia");
   const [intent, setIntent]         = useState("Informativo");
   const [maxComp, setMaxComp]       = useState(6);
@@ -33,7 +35,9 @@ export default function SeoPage() {
       setOpenaiKey(localStorage.getItem("openai_key") || "");
       setSerpKey(localStorage.getItem("serp_key") || "");
     }
-    fetch(`${API}/api/clients`).then((r) => r.json()).then(setClients).catch(() => {});
+    fetch(`${API}/api/clients`).then((r) => r.json()).then((data) => {
+      setClients(data);
+    }).catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -159,5 +163,13 @@ export default function SeoPage() {
         )}
       </Section>
     </div>
+  );
+}
+
+export default function SeoPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-[#ababab] text-[13px]">Caricamento…</div>}>
+      <SeoForm />
+    </Suspense>
   );
 }
