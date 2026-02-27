@@ -1,28 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-* {
-  box-sizing: border-box;
+/* ── Scrollbar ── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255,255,255,.1); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.18); }
+
+/* ── Form elements reset ── */
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: inherit;
 }
 
-html,
-body {
-  height: 100%;
-  margin: 0;
-}
-
-/* Scrollbar sottile */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+/* ── Selection ── */
+::selection {
+  background: rgba(124, 106, 247, .35);
 }

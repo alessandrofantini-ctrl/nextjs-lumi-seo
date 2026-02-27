@@ -14,32 +14,36 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 shrink-0 flex flex-col bg-[#141414] border-r border-white/[0.06] h-full">
+    <aside className="w-52 shrink-0 flex flex-col bg-[#141414] border-r border-white/[0.07] h-full">
+
       {/* Logo */}
-      <div className="px-5 py-6 border-b border-white/[0.06]">
-        <span className="text-lg font-semibold tracking-tight text-white">
-          Lumi <span className="text-[#7c6af7]">SEO</span>
-        </span>
-        <p className="text-[11px] text-white/30 mt-0.5">Suite interna</p>
+      <div className="px-4 py-5 border-b border-white/[0.07]">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-[#7c6af7] flex items-center justify-center">
+            <span className="text-[11px] font-bold text-white">L</span>
+          </div>
+          <span className="text-sm font-semibold text-white/90 tracking-tight">
+            Lumi SEO Suite
+          </span>
+        </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 flex flex-col gap-1">
+      <nav className="flex-1 p-2 flex flex-col gap-0.5">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
               href={href}
-              className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all
-                ${active
-                  ? "bg-[#7c6af7]/15 text-[#a89ff9] font-medium"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
-                }
-              `}
+              className={[
+                "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
+                active
+                  ? "bg-white/[0.08] text-white font-medium"
+                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]",
+              ].join(" ")}
             >
-              <Icon size={16} strokeWidth={1.8} />
+              <Icon size={15} strokeWidth={active ? 2 : 1.7} />
               {label}
             </Link>
           );
@@ -47,12 +51,17 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="p-3 border-t border-white/[0.06]">
+      <div className="p-2 border-t border-white/[0.07]">
         <Link
           href="/impostazioni"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all"
+          className={[
+            "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
+            pathname === "/impostazioni"
+              ? "bg-white/[0.08] text-white font-medium"
+              : "text-white/35 hover:text-white/70 hover:bg-white/[0.04]",
+          ].join(" ")}
         >
-          <Settings size={16} strokeWidth={1.8} />
+          <Settings size={15} strokeWidth={1.7} />
           Impostazioni
         </Link>
       </div>
