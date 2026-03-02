@@ -18,13 +18,18 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
 };
 const STATUS_ORDER = ["backlog", "planned", "brief_done", "written", "published"];
 
-type KW    = { id: string; keyword: string; status: string; created_at: string };
+type KW = {
+  id: string; keyword: string; status: string; created_at: string;
+  impressions?: number; clicks?: number; position?: number; ctr?: number;
+  gsc_updated_at?: string;
+};
 type Brief = { id: string; keyword: string; market: string; intent: string; created_at: string };
 
 type ClientFull = {
   id: string; name: string; url?: string; sector?: string; brand_name?: string;
   tone_of_voice?: string; usp?: string; products_services?: string;
   target_audience?: string; geo?: string; notes?: string;
+  gsc_property?: string;
   keyword_history: KW[]; briefs: Brief[];
   created_at?: string; updated_at?: string;
 };
@@ -44,6 +49,10 @@ export default function ClientPage() {
   const [saving, setSaving]     = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting]           = useState(false);
+
+  // GSC sync state
+  const [gscSyncing, setGscSyncing] = useState(false);
+  const [gscResult, setGscResult]   = useState<{ synced: number; added: number } | null>(null);
 
   // keyword state
   const [newKw, setNewKw]       = useState("");
@@ -65,6 +74,7 @@ export default function ClientPage() {
         brand_name: data.brand_name || "", tone_of_voice: data.tone_of_voice || TONES[0],
         usp: data.usp || "", products_services: data.products_services || "",
         target_audience: data.target_audience || "", geo: data.geo || "", notes: data.notes || "",
+        gsc_property: data.gsc_property || "",
       });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Errore caricamento");
@@ -134,6 +144,19 @@ export default function ClientPage() {
   async function clearKeywords() {
     await fetch(`${API}/api/clients/${clientId}/keywords`, { method: "DELETE" });
     setClient((c) => c ? { ...c, keyword_history: [] } : c);
+  }
+
+  async function syncGSC() {
+    setGscSyncing(true); setGscResult(null);
+    try {
+      const r = await fetch(`${API}/api/clients/${clientId}/gsc-sync`, { method: "POST" });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || "Errore sincronizzazione GSC");
+      setGscResult(data);
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Errore sincronizzazione GSC");
+    } finally { setGscSyncing(false); }
   }
 
   function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -244,6 +267,7 @@ export default function ClientPage() {
                   <InfoItem label="Zona geografica"  value={client.geo}             />
                   <InfoItem label="Tono di voce"     value={client.tone_of_voice}   />
                   <InfoItem label="Target audience"  value={client.target_audience} />
+                  <InfoItem label="GSC Property"     value={client.gsc_property}    />
                 </div>
                 {client.products_services && <InfoBlock label="Prodotti / Servizi"  value={client.products_services} />}
                 {client.usp              && <InfoBlock label="USP / Punti di forza" value={client.usp}               />}
@@ -257,6 +281,15 @@ export default function ClientPage() {
                     Keyword ({client.keyword_history.length})
                   </p>
                   <div className="flex items-center gap-2">
+                    {client.gsc_property && (
+                      <button
+                        onClick={syncGSC}
+                        disabled={gscSyncing}
+                        className="text-[11px] text-[#2563eb] hover:text-[#1d4ed8] border border-[#bfdbfe] hover:border-[#93c5fd] bg-[#eff6ff] rounded-md px-2.5 py-1 transition-colors disabled:opacity-50"
+                      >
+                        {gscSyncing ? "Sincronizzazione…" : "Sincronizza GSC"}
+                      </button>
+                    )}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -279,6 +312,14 @@ export default function ClientPage() {
                     <Alert type="info">
                       Aggiunte <strong>{importResult.added}</strong> keyword
                       {importResult.skipped > 0 && `, ${importResult.skipped} già presenti saltate`}.
+                    </Alert>
+                  </div>
+                )}
+                {gscResult && (
+                  <div className="mb-3">
+                    <Alert type="info">
+                      GSC: aggiornate <strong>{gscResult.synced}</strong> keyword esistenti
+                      {gscResult.added > 0 && <>, aggiunte <strong>{gscResult.added}</strong> nuove query</>}.
                     </Alert>
                   </div>
                 )}
@@ -385,6 +426,14 @@ export default function ClientPage() {
                 <div><Label>Prodotti / Servizi</Label><Textarea rows={4} value={form.products_services || ""} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Un prodotto/servizio per riga" /></div>
                 <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp || ""} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} /></div>
                 <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes || ""} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
+                <div>
+                  <Label>GSC Property</Label>
+                  <Input
+                    value={form.gsc_property || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, gsc_property: e.target.value }))}
+                    placeholder="sc-domain:esempio.it oppure https://www.esempio.it/"
+                  />
+                </div>
                 <div className="flex gap-2 pt-1">
                   <Btn type="submit" loading={saving}>Salva modifiche</Btn>
                   <Btn type="button" variant="ghost" onClick={() => setEditMode(false)}>Annulla</Btn>
@@ -423,6 +472,7 @@ function KeywordRow({ kw, clientId, onStatusChange, onDelete }: {
 }) {
   const s = kw.status || "backlog";
   const cfg = STATUS_CFG[s] ?? STATUS_CFG.backlog;
+  const hasGsc = kw.impressions != null;
   return (
     <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#f7f7f6] group transition-colors">
       {/* Status badge (select) */}
@@ -439,6 +489,15 @@ function KeywordRow({ kw, clientId, onStatusChange, onDelete }: {
 
       {/* Keyword text */}
       <span className="flex-1 text-[13px] text-[#333] truncate">{kw.keyword}</span>
+
+      {/* GSC metrics */}
+      {hasGsc && (
+        <span className="hidden group-hover:flex items-center gap-3 text-[11px] text-[#ababab] shrink-0">
+          <span title="Impressioni">{kw.impressions?.toLocaleString("it-IT")} imp</span>
+          <span title="Click">{kw.clicks?.toLocaleString("it-IT")} click</span>
+          <span title="Posizione media" className="font-medium text-[#555]">#{kw.position?.toFixed(1)}</span>
+        </span>
+      )}
 
       {/* Analizza → link (visible on hover) */}
       <Link
