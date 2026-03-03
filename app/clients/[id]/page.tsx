@@ -4,8 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Label, Input, Textarea, Select, Btn, Alert, Card } from "@/components/ui";
-
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { apiFetch } from "@/lib/api";
 
 const TONES = ["Autorevole & tecnico", "Empatico & problem solving", "Diretto & commerciale"];
 
@@ -65,7 +64,7 @@ export default function ClientPage() {
   async function load() {
     setLoading(true); setError(null);
     try {
-      const r = await fetch(`${API}/api/clients/${clientId}`);
+      const r = await apiFetch(`/api/clients/${clientId}`);
       if (!r.ok) throw new Error("Cliente non trovato");
       const data: ClientFull = await r.json();
       setClient(data);
@@ -85,9 +84,8 @@ export default function ClientPage() {
     e.preventDefault();
     setSaving(true); setError(null);
     try {
-      const r = await fetch(`${API}/api/clients/${clientId}`, {
+      const r = await apiFetch(`/api/clients/${clientId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore salvataggio"); }
@@ -100,7 +98,7 @@ export default function ClientPage() {
   async function deleteClient() {
     setDeleting(true);
     try {
-      await fetch(`${API}/api/clients/${clientId}`, { method: "DELETE" });
+      await apiFetch(`/api/clients/${clientId}`, { method: "DELETE" });
       router.push("/clients");
     } catch {
       setError("Errore eliminazione"); setDeleting(false);
@@ -112,9 +110,8 @@ export default function ClientPage() {
     if (!newKw.trim()) return;
     setAddingKw(true);
     try {
-      await fetch(`${API}/api/clients/${clientId}/keywords`, {
+      await apiFetch(`/api/clients/${clientId}/keywords`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword: newKw }),
       });
       setNewKw(""); await load();
@@ -122,9 +119,8 @@ export default function ClientPage() {
   }
 
   async function updateStatus(kwId: string, status: string) {
-    await fetch(`${API}/api/clients/${clientId}/keywords/${kwId}`, {
+    await apiFetch(`/api/clients/${clientId}/keywords/${kwId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
     // optimistic update
@@ -135,21 +131,21 @@ export default function ClientPage() {
   }
 
   async function deleteKeyword(kwId: string) {
-    await fetch(`${API}/api/clients/${clientId}/keywords/${kwId}`, { method: "DELETE" });
+    await apiFetch(`/api/clients/${clientId}/keywords/${kwId}`, { method: "DELETE" });
     setClient((c) => c ? {
       ...c, keyword_history: c.keyword_history.filter((k) => k.id !== kwId),
     } : c);
   }
 
   async function clearKeywords() {
-    await fetch(`${API}/api/clients/${clientId}/keywords`, { method: "DELETE" });
+    await apiFetch(`/api/clients/${clientId}/keywords`, { method: "DELETE" });
     setClient((c) => c ? { ...c, keyword_history: [] } : c);
   }
 
   async function syncGSC() {
     setGscSyncing(true); setGscResult(null);
     try {
-      const r = await fetch(`${API}/api/clients/${clientId}/gsc-sync`, { method: "POST" });
+      const r = await apiFetch(`/api/clients/${clientId}/gsc-sync`, { method: "POST" });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || "Errore sincronizzazione GSC");
       setGscResult(data);
@@ -174,9 +170,8 @@ export default function ClientPage() {
         ? lines.slice(1) : lines;
       if (!keywords.length) { setImporting(false); return; }
       try {
-        const r = await fetch(`${API}/api/clients/${clientId}/keywords/bulk`, {
+        const r = await apiFetch(`/api/clients/${clientId}/keywords/bulk`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ keywords }),
         });
         const data = await r.json();

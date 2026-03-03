@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Users, BarChart2, PenLine, Settings } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Users, BarChart2, PenLine, Settings, LogOut } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 const NAV = [
   { href: "/clients", label: "Clienti",     icon: Users     },
@@ -12,6 +13,14 @@ const NAV = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="w-52 shrink-0 flex flex-col bg-white border-r border-[#e8e8e8] h-full">
@@ -51,7 +60,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="p-2 border-t border-[#e8e8e8]">
+      <div className="p-2 border-t border-[#e8e8e8] flex flex-col gap-0.5">
         <Link
           href="/impostazioni"
           className={[
@@ -64,6 +73,13 @@ export default function Sidebar() {
           <Settings size={15} strokeWidth={1.7} />
           Impostazioni
         </Link>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-[#ababab] hover:text-red-500 hover:bg-red-50 transition-colors w-full text-left"
+        >
+          <LogOut size={15} strokeWidth={1.7} />
+          Esci
+        </button>
       </div>
     </aside>
   );

@@ -4,8 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PageHeader, Section, Label, Input, Select, Btn, Alert } from "@/components/ui";
-
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { apiFetch } from "@/lib/api";
 
 type Client = { id: string; name: string };
 
@@ -17,43 +16,31 @@ const INTENTS = ["Informativo", "Commerciale", "Navigazionale"];
 
 function SeoForm() {
   const searchParams = useSearchParams();
-  const [clients, setClients]       = useState<Client[]>([]);
-  const [keyword, setKeyword]       = useState(searchParams.get("keyword") ?? "");
-  const [clientId, setClientId]     = useState(searchParams.get("client_id") ?? "");
-  const [market, setMarket]         = useState("🇮🇹 Italia");
-  const [intent, setIntent]         = useState("Informativo");
-  const [maxComp, setMaxComp]       = useState(6);
-  const [schema, setSchema]         = useState(true);
-  const [openaiKey, setOpenaiKey]   = useState("");
-  const [serpKey, setSerpKey]       = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [result, setResult]         = useState<{ brief_output: string; competitors_analysed: number } | null>(null);
+  const [clients, setClients]   = useState<Client[]>([]);
+  const [keyword, setKeyword]   = useState(searchParams.get("keyword") ?? "");
+  const [clientId, setClientId] = useState(searchParams.get("client_id") ?? "");
+  const [market, setMarket]     = useState("🇮🇹 Italia");
+  const [intent, setIntent]     = useState("Informativo");
+  const [maxComp, setMaxComp]   = useState(6);
+  const [schema, setSchema]     = useState(true);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [result, setResult]     = useState<{ brief_output: string; competitors_analysed: number } | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setOpenaiKey(localStorage.getItem("openai_key") || "");
-      setSerpKey(localStorage.getItem("serp_key") || "");
-    }
-    fetch(`${API}/api/clients`).then((r) => r.json()).then((data) => {
-      setClients(data);
-    }).catch(() => {});
+    apiFetch("/api/clients").then((r) => r.json()).then(setClients).catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!keyword.trim()) { setError("Inserisci la keyword principale."); return; }
-    if (!openaiKey)       { setError("OpenAI key mancante — vai in Impostazioni."); return; }
-    if (!serpKey)         { setError("SerpAPI key mancante — vai in Impostazioni."); return; }
     setLoading(true); setError(null); setResult(null);
     try {
-      const r = await fetch(`${API}/api/seo/analyse`, {
+      const r = await apiFetch("/api/seo/analyse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           keyword, client_id: clientId || null, market, intent,
-          max_competitors: maxComp, include_schema: schema,
-          openai_api_key: openaiKey, serp_api_key: serpKey, save_brief: true,
+          max_competitors: maxComp, include_schema: schema, save_brief: true,
         }),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore analisi"); }
@@ -63,25 +50,11 @@ function SeoForm() {
     } finally { setLoading(false); }
   }
 
-  const missingKeys = !openaiKey || !serpKey;
-
   return (
     <div className="flex flex-col h-full">
       <PageHeader title="Analisi SEO" subtitle="Genera un brief editoriale analizzando SERP e competitor." />
 
       <Section>
-        {missingKeys && (
-          <div className="mb-6">
-            <Alert type="warn">
-              API key mancanti —{" "}
-              <Link href="/impostazioni" className="underline underline-offset-2 hover:text-yellow-700">
-                configurale in Impostazioni
-              </Link>{" "}
-              prima di avviare un&apos;analisi.
-            </Alert>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Keyword + intent */}
           <div className="grid grid-cols-3 gap-4">
@@ -159,6 +132,13 @@ function SeoForm() {
             <pre className="p-5 rounded-xl border border-[#e8e8e8] bg-white text-[#444] text-[12.5px] whitespace-pre-wrap font-mono leading-relaxed overflow-x-auto">
               {result.brief_output}
             </pre>
+            {clientId && (
+              <div className="mt-3 text-right">
+                <Link href={`/clients/${clientId}`} className="text-[12px] text-[#737373] hover:text-[#1a1a1a] underline underline-offset-2">
+                  ← Torna al cliente
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </Section>

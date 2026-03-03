@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader, Section, Card, Label, Input, Textarea, Select, Btn, Alert } from "@/components/ui";
-
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { apiFetch } from "@/lib/api";
 
 type Client = { id: string; name: string; url?: string; sector?: string; tone_of_voice?: string };
 
@@ -32,17 +31,13 @@ export default function ClientsPage() {
   const [search, setSearch]     = useState("");
   const [autoUrl, setAutoUrl]   = useState("");
   const [generating, setGenerating] = useState(false);
-  const [openaiKey, setOpenaiKey]   = useState("");
 
-  useEffect(() => {
-    if (typeof window !== "undefined") setOpenaiKey(localStorage.getItem("openai_key") || "");
-    loadClients();
-  }, []);
+  useEffect(() => { loadClients(); }, []);
 
   async function loadClients() {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/clients`);
+      const r = await apiFetch("/api/clients");
       setClients(await r.json());
     } catch { setError("Errore caricamento clienti"); }
     finally { setLoading(false); }
@@ -50,13 +45,11 @@ export default function ClientsPage() {
 
   async function handleAutoGenerate() {
     if (!autoUrl) return;
-    if (!openaiKey) { setError("OpenAI key mancante — vai in Impostazioni."); return; }
     setGenerating(true); setError(null);
     try {
-      const r = await fetch(`${API}/api/clients/auto-generate`, {
+      const r = await apiFetch("/api/clients/auto-generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: autoUrl, openai_api_key: openaiKey }),
+        body: JSON.stringify({ url: autoUrl }),
       });
       if (!r.ok) throw new Error("Errore generazione profilo");
       const data = await r.json();
@@ -71,9 +64,8 @@ export default function ClientsPage() {
     if (!form.name.trim()) { setError("Il nome è obbligatorio."); return; }
     setSaving(true); setError(null);
     try {
-      const r = await fetch(`${API}/api/clients`, {
+      const r = await apiFetch("/api/clients", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore"); }
@@ -119,14 +111,6 @@ export default function ClientsPage() {
                     {generating ? "Analisi…" : "Analizza"}
                   </Btn>
                 </div>
-                {!openaiKey && (
-                  <p className="text-[11px] text-[#ababab] mt-2">
-                    ⚠ OpenAI key mancante —{" "}
-                    <Link href="/impostazioni" className="text-[#555] hover:text-[#1a1a1a] underline underline-offset-2">
-                      Impostazioni
-                    </Link>
-                  </p>
-                )}
               </div>
 
               <form onSubmit={createClient} className="flex flex-col gap-4">
