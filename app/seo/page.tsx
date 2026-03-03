@@ -28,7 +28,10 @@ function SeoForm() {
   const [result, setResult]     = useState<{ brief_output: string; competitors_analysed: number } | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/clients").then((r) => r.json()).then(setClients).catch(() => {});
+    apiFetch("/api/clients")
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data) => setClients(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

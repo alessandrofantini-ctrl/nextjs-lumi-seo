@@ -21,7 +21,10 @@ export default function WriterPage() {
   const [article, setArticle]       = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/seo/briefs").then((r) => r.json()).then(setBriefs).catch(() => {});
+    apiFetch("/api/seo/briefs")
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data) => setBriefs(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
