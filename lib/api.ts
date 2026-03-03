@@ -8,6 +8,15 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     data: { session },
   } = await supabase.auth.getSession();
 
+  const apiHeaders: Record<string, string> = {};
+
+  if (typeof window !== "undefined") {
+    const openaiKey = localStorage.getItem("lumi_openai_key");
+    const serpKey   = localStorage.getItem("lumi_serpapi_key");
+    if (openaiKey) apiHeaders["X-OpenAI-Key"] = openaiKey;
+    if (serpKey)   apiHeaders["X-SerpAPI-Key"] = serpKey;
+  }
+
   return fetch(`${API}${path}`, {
     ...options,
     headers: {
@@ -15,6 +24,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
       ...(session?.access_token
         ? { Authorization: `Bearer ${session.access_token}` }
         : {}),
+      ...apiHeaders,
       ...(options.headers as Record<string, string>),
     },
   });
