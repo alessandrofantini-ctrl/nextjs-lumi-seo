@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { PageHeader, Section, Label, Select, Textarea, Btn, Alert } from "@/components/ui";
-
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { apiFetch } from "@/lib/api";
 
 type Brief = { id: string; keyword: string; market: string; created_at: string };
 
@@ -18,14 +16,12 @@ export default function WriterPage() {
   const [targetUrl, setTargetUrl]   = useState("");
   const [length, setLength]         = useState("Long form");
   const [creativity, setCreativity] = useState(0.35);
-  const [openaiKey, setOpenaiKey]   = useState("");
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const [article, setArticle]       = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") setOpenaiKey(localStorage.getItem("openai_key") || "");
-    fetch(`${API}/api/seo/briefs`).then((r) => r.json()).then(setBriefs).catch(() => {});
+    apiFetch("/api/seo/briefs").then((r) => r.json()).then(setBriefs).catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -33,16 +29,14 @@ export default function WriterPage() {
     if (!briefId && !briefText.trim()) {
       setError("Seleziona un brief salvato oppure incolla il testo del brief."); return;
     }
-    if (!openaiKey) { setError("OpenAI key mancante — vai in Impostazioni."); return; }
     setLoading(true); setError(null); setArticle(null);
     try {
-      const r = await fetch(`${API}/api/writer/generate`, {
+      const r = await apiFetch("/api/writer/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           brief_id: briefId || null, brief_text: briefText || null,
           brand_name: brandName, target_page_url: targetUrl,
-          length, creativity, openai_api_key: openaiKey,
+          length, creativity,
         }),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore"); }
@@ -66,17 +60,6 @@ export default function WriterPage() {
       <PageHeader title="Redattore articoli" subtitle="Trasforma un brief SEO in un articolo completo con GPT-4o." />
 
       <Section>
-        {!openaiKey && (
-          <div className="mb-6">
-            <Alert type="warn">
-              OpenAI key mancante —{" "}
-              <Link href="/impostazioni" className="underline underline-offset-2 hover:text-yellow-700">
-                Impostazioni
-              </Link>
-            </Alert>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
             <Label>Brief salvato</Label>
