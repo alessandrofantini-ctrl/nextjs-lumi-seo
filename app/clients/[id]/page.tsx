@@ -99,7 +99,7 @@ export default function ClientPage() {
 
   // GSC sync
   const [gscSyncing, setGscSyncing] = useState(false);
-  const [gscResult, setGscResult]   = useState<{ synced: number; added: number } | null>(null);
+  const [gscResult, setGscResult]   = useState<{ synced: number; total: number } | null>(null);
 
   // keyword controls
   const [newKw, setNewKw]       = useState("");
@@ -381,8 +381,10 @@ export default function ClientPage() {
                 {gscResult && (
                   <div className="mb-3">
                     <Alert type="info">
-                      GSC: aggiornate <strong>{gscResult.synced}</strong> keyword esistenti
-                      {gscResult.added > 0 && <>, aggiunte <strong>{gscResult.added}</strong> nuove query</>}.
+                      GSC: metriche aggiornate su <strong>{gscResult.synced}</strong> di <strong>{gscResult.total}</strong> keyword.
+                      {gscResult.synced < gscResult.total && (
+                        <span className="ml-1 opacity-70">Le restanti non compaiono ancora su Google.</span>
+                      )}
                     </Alert>
                   </div>
                 )}
