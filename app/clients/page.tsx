@@ -38,7 +38,9 @@ export default function ClientsPage() {
     setLoading(true);
     try {
       const r = await apiFetch("/api/clients");
-      setClients(await r.json());
+      if (!r.ok) throw new Error("Errore caricamento clienti");
+      const data = await r.json();
+      setClients(Array.isArray(data) ? data : []);
     } catch { setError("Errore caricamento clienti"); }
     finally { setLoading(false); }
   }
