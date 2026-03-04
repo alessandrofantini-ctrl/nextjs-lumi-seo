@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import Link from "next/link";
 import { Label, Input, Textarea, Select, Btn, Alert, Card } from "@/components/ui";
 import { apiFetch } from "@/lib/api";
+import { detectCannibalization } from "@/lib/cannibalization";
 
 const TONES = ["Autorevole & tecnico", "Empatico & problem solving", "Diretto & commerciale"];
 
@@ -30,14 +31,6 @@ const PRIORITY_CFG: Record<string, { label: string; dot: string }> = {
   bassa: { label: "Bassa", dot: "#86efac" },
 };
 
-// stopwords for cannibalization detection
-const STOP = new Set([
-  "di","a","da","in","su","per","con","tra","fra","il","lo","la","i","gli","le",
-  "un","uno","una","e","o","ma","che","è","si","ha","ho","non","del","della","dei",
-  "the","a","an","of","for","in","on","at","to","with","and","or","but","is","are",
-  "how","what","when","where","who","why","best","top","come","cosa","quando","dove",
-]);
-
 type KW = {
   id: string; keyword: string; status: string; created_at: string;
   impressions?: number; clicks?: number; position?: number; ctr?: number;
@@ -57,31 +50,6 @@ type ClientFull = {
 
 type EditForm = Omit<ClientFull, "id" | "keyword_history" | "briefs" | "created_at" | "updated_at">;
 
-// ── Cannibalization detection ────────────────────────────
-function detectCannibalization(kws: KW[]): Array<{ a: string; b: string; intent: string }> {
-  const intentGroups: Record<string, KW[]> = {};
-  kws.forEach((k) => {
-    if (k.intent) {
-      if (!intentGroups[k.intent]) intentGroups[k.intent] = [];
-      intentGroups[k.intent].push(k);
-    }
-  });
-  const pairs: Array<{ a: string; b: string; intent: string }> = [];
-  Object.entries(intentGroups).forEach(([intent, group]) => {
-    if (group.length < 2) return;
-    for (let i = 0; i < group.length; i++) {
-      for (let j = i + 1; j < group.length; j++) {
-        const wordsA = new Set(
-          group[i].keyword.toLowerCase().split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w))
-        );
-        const wordsB = group[j].keyword.toLowerCase().split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w));
-        const overlap = wordsB.filter((w) => wordsA.has(w));
-        if (overlap.length >= 2) pairs.push({ a: group[i].keyword, b: group[j].keyword, intent });
-      }
-    }
-  });
-  return pairs;
-}
 
 export default function ClientPage() {
   const { id }   = useParams();
