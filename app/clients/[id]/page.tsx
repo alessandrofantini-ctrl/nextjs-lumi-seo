@@ -7,6 +7,7 @@ import { Label, Input, Textarea, Select, Btn, Alert, Card } from "@/components/u
 import { apiFetch } from "@/lib/api";
 import { detectCannibalization } from "@/lib/cannibalization";
 import { CheckCircle, Circle } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const TONES = ["Autorevole & tecnico", "Empatico & problem solving", "Diretto & commerciale"];
 
@@ -50,6 +51,21 @@ type KW = {
 };
 type Brief = { id: string; keyword: string; market: string; intent: string; created_at: string };
 
+type PositionSnapshot = {
+  position: number;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  recorded_at: string;
+};
+
+type VisibilitySnapshot = {
+  recorded_at: string;
+  avg_position: number;
+  total_clicks: number;
+  total_impressions: number;
+};
+
 type ClientFull = {
   id: string; name: string; url?: string; sector?: string; brand_name?: string;
   tone_of_voice?: string; usp?: string; products_services?: string;
@@ -85,6 +101,7 @@ export default function ClientPage() {
 
   // Monitoraggio filters
   const [monFilter, setMonFilter] = useState<"all" | "top10" | "incalo" | "opportunita">("all");
+  const [visibilityHistory, setVisibilityHistory] = useState<VisibilitySnapshot[]>([]);
 
   // keyword controls
   const [newKw, setNewKw]       = useState("");
@@ -220,6 +237,14 @@ export default function ClientPage() {
   }
 
   useEffect(() => { load(); }, [clientId]);
+
+  useEffect(() => {
+    if (activeTab !== "monitoraggio" || !clientId) return;
+    apiFetch(`/api/clients/${clientId}/visibility-history`)
+      .then((r) => r.json())
+      .then((data) => setVisibilityHistory(data.history ?? []))
+      .catch(() => {});
+  }, [activeTab, clientId]);
 
   // ── Derived keyword lists ────────────────────────────
   const processedKw = useMemo(() => {
@@ -602,6 +627,91 @@ export default function ClientPage() {
                     <MonFilterBtn active={monFilter === "opportunita"} onClick={() => setMonFilter("opportunita")}>Opportunità</MonFilterBtn>
                   </div>
 
+                  {/* Andamento progetto */}
+                  {visibilityHistory.length >= 2 && (
+                    <div className="flex flex-col gap-4">
+                      <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide">Andamento progetto</p>
+
+                      {/* Grafico aggregato */}
+                      <Card className="p-4">
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={visibilityHistory}>
+                            <XAxis
+                              dataKey="recorded_at"
+                              tickFormatter={(v: string) => new Date(v).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+                              tick={{ fontSize: 10, fill: "#ababab" }}
+                            />
+                            <YAxis
+                              yAxisId="left"
+                              reversed
+                              domain={["auto", "auto"]}
+                              tick={{ fontSize: 10, fill: "#ababab" }}
+                              tickFormatter={(v: number) => `#${v}`}
+                            />
+                            <YAxis
+                              yAxisId="right"
+                              orientation="right"
+                              tick={{ fontSize: 10, fill: "#2563eb" }}
+                            />
+                            <Tooltip
+                              formatter={(value: number, name: string) => {
+                                if (name === "avg_position") return [`#${value.toFixed(1)}`, "Pos. media"];
+                                return [value.toLocaleString("it-IT"), "Click"];
+                              }}
+                              labelFormatter={(label: string) => new Date(label).toLocaleDateString("it-IT")}
+                            />
+                            <Line yAxisId="left"  type="monotone" dataKey="avg_position" stroke="#1a1a1a" strokeWidth={1.5} dot={{ r: 3, fill: "#1a1a1a" }} activeDot={{ r: 4 }} />
+                            <Line yAxisId="right" type="monotone" dataKey="total_clicks" stroke="#2563eb" strokeWidth={1.5} dot={{ r: 3, fill: "#2563eb" }} activeDot={{ r: 4 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </Card>
+
+                      {/* Tabella confronto temporale */}
+                      {(() => {
+                        const now = Date.now();
+                        const targets = [0, 30, 60, 90].map((days) => now - days * 86400000);
+                        const snaps = targets.map((t) => {
+                          let best: VisibilitySnapshot | null = null;
+                          let bestDiff = Infinity;
+                          for (const s of visibilityHistory) {
+                            const d = new Date(s.recorded_at).getTime();
+                            const diff = Math.abs(d - t);
+                            if (diff < 7 * 86400000 && diff < bestDiff) { bestDiff = diff; best = s; }
+                          }
+                          return best;
+                        });
+                        const cols = ["Oggi", "-30gg", "-60gg", "-90gg"];
+                        const fmt = (n: number | null | undefined) => n != null ? n.toLocaleString("it-IT") : "—";
+                        return (
+                          <Card className="overflow-hidden">
+                            <table className="w-full text-[12px]">
+                              <thead>
+                                <tr className="border-b border-[#f0f0f0] text-[10px] font-medium text-[#ababab] uppercase tracking-wide">
+                                  <th className="text-left px-4 py-2.5">Metrica</th>
+                                  {cols.map((c) => <th key={c} className="text-right px-4 py-2.5">{c}</th>)}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[#f8f8f8]">
+                                <tr className="hover:bg-[#fafaf9]">
+                                  <td className="px-4 py-2.5 text-[#737373]">Posizione media</td>
+                                  {snaps.map((s, i) => <td key={i} className="px-4 py-2.5 text-right font-medium text-[#1a1a1a]">{s ? `#${s.avg_position.toFixed(1)}` : "—"}</td>)}
+                                </tr>
+                                <tr className="hover:bg-[#fafaf9]">
+                                  <td className="px-4 py-2.5 text-[#737373]">Click totali</td>
+                                  {snaps.map((s, i) => <td key={i} className="px-4 py-2.5 text-right text-[#555]">{fmt(s?.total_clicks)}</td>)}
+                                </tr>
+                                <tr className="hover:bg-[#fafaf9]">
+                                  <td className="px-4 py-2.5 text-[#737373]">Impressioni totali</td>
+                                  {snaps.map((s, i) => <td key={i} className="px-4 py-2.5 text-right text-[#555]">{fmt(s?.total_impressions)}</td>)}
+                                </tr>
+                              </tbody>
+                            </table>
+                          </Card>
+                        );
+                      })()}
+                    </div>
+                  )}
+
                   {/* Tabella */}
                   {client.keyword_history.length === 0 ? (
                     <p className="text-[#ababab] text-[13px]">
@@ -805,6 +915,23 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   const [clusterEdit, setClusterEdit] = useState(kw.cluster ?? "");
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [kwHistory, setKwHistory] = useState<PositionSnapshot[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  async function handleExpand() {
+    const next = !expanded;
+    setExpanded(next);
+    if (next && !historyLoaded) {
+      setHistoryLoading(true);
+      try {
+        const r = await apiFetch(`/api/clients/${clientId}/keywords/${kw.id}/history`);
+        const data = await r.json();
+        setKwHistory(data.history ?? []);
+      } catch { /* silenzioso */ }
+      finally { setHistoryLoaded(true); setHistoryLoading(false); }
+    }
+  }
 
   const s    = kw.status   || "backlog";
   const cfg  = STATUS_CFG[s] ?? STATUS_CFG.backlog;
@@ -817,7 +944,7 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
       {/* Main row */}
       <div
         className="flex items-center gap-2 px-2 py-2 cursor-pointer"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={handleExpand}
       >
         {/* Priority dot */}
         <span
@@ -959,6 +1086,44 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
               </div>
             </div>
           )}
+
+          {/* Storico posizioni */}
+          <div className="w-full mt-1">
+            <span className="text-[10px] text-[#ababab] font-medium uppercase tracking-wide block mb-2">Storico posizioni</span>
+            {historyLoading ? (
+              <p className="text-[12px] text-[#ababab]">Caricamento storico…</p>
+            ) : kwHistory.length < 2 ? (
+              <p className="text-[12px] text-[#ababab]">Dati insufficienti — servono almeno 2 sync GSC</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={kwHistory}>
+                  <XAxis
+                    dataKey="recorded_at"
+                    tickFormatter={(v: string) => new Date(v).toLocaleDateString("it-IT", { day: "2-digit", month: "short" })}
+                    tick={{ fontSize: 10, fill: "#ababab" }}
+                  />
+                  <YAxis
+                    reversed
+                    domain={["auto", "auto"]}
+                    tick={{ fontSize: 10, fill: "#ababab" }}
+                    tickFormatter={(v: number) => `#${v}`}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [`#${value.toFixed(1)}`, "Posizione"]}
+                    labelFormatter={(label: string) => new Date(label).toLocaleDateString("it-IT")}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="position"
+                    stroke="#1a1a1a"
+                    strokeWidth={1.5}
+                    dot={{ r: 3, fill: "#1a1a1a" }}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
       )}
     </div>
