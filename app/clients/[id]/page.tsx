@@ -247,7 +247,7 @@ export default function ClientPage() {
   }, [cannibalization]);
 
   const kwWithGsc = useMemo(
-    () => (client?.keyword_history ?? []).filter((k) => k.position != null),
+    () => client?.keyword_history ?? [],
     [client],
   );
 
@@ -255,18 +255,24 @@ export default function ClientPage() {
     (k.impressions ?? 0) > 100 && (k.position ?? 999) > 10 && k.status === "backlog";
 
   const filteredMonKw = useMemo(() => {
-    return kwWithGsc.filter((k) => {
-      if (monFilter === "top10")      return (k.position ?? 999) <= 10;
-      if (monFilter === "incalo")     return k.position_prev != null && (k.position ?? 999) > k.position_prev;
+    const filtered = kwWithGsc.filter((k) => {
+      if (monFilter === "top10")       return k.position != null && k.position <= 10;
+      if (monFilter === "incalo")      return k.position_prev != null && k.position != null && k.position > k.position_prev;
       if (monFilter === "opportunita") return isOpportunita(k);
       return true;
+    });
+    return filtered.sort((a, b) => {
+      if (a.position != null && b.position != null) return a.position - b.position;
+      if (a.position != null) return -1;
+      if (b.position != null) return 1;
+      return a.keyword.localeCompare(b.keyword);
     });
   }, [kwWithGsc, monFilter]);
 
   const monKpi = useMemo(() => ({
     totale:      kwWithGsc.length,
-    top10:       kwWithGsc.filter((k) => (k.position ?? 999) <= 10).length,
-    inCalo:      kwWithGsc.filter((k) => k.position_prev != null && (k.position ?? 999) > k.position_prev).length,
+    top10:       kwWithGsc.filter((k) => k.position != null && k.position <= 10).length,
+    inCalo:      kwWithGsc.filter((k) => k.position_prev != null && k.position != null && k.position > k.position_prev).length,
     opportunita: kwWithGsc.filter(isOpportunita).length,
   }), [kwWithGsc]);
 
@@ -582,9 +588,9 @@ export default function ClientPage() {
                   </div>
 
                   {/* Tabella */}
-                  {kwWithGsc.length === 0 ? (
+                  {client.keyword_history.length === 0 ? (
                     <p className="text-[#ababab] text-[13px]">
-                      Nessun dato GSC ancora — sincronizza Google Search Console dalla tab Keyword.
+                      Nessuna keyword ancora — aggiungile dalla tab Keyword.
                     </p>
                   ) : filteredMonKw.length === 0 ? (
                     <p className="text-[#ababab] text-[13px]">Nessuna keyword corrisponde al filtro selezionato.</p>
@@ -619,7 +625,7 @@ export default function ClientPage() {
                                     {kw.keyword}
                                   </td>
                                   <td className="px-3 py-3 text-right text-[#555] font-medium">
-                                    #{kw.position?.toFixed(1)}
+                                    {kw.position != null ? `#${kw.position.toFixed(1)}` : <span className="text-[#ccc]">—</span>}
                                   </td>
                                   <td className="px-3 py-3 text-right">
                                     <DeltaBadge delta={delta} />
