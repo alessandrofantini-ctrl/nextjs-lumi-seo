@@ -10,13 +10,13 @@ type Client = { id: string; name: string; url?: string; sector?: string; tone_of
 type NewClientForm = {
   name: string; url: string; sector: string; brand_name: string;
   tone_of_voice: string; usp: string; products_services: string;
-  target_audience: string; geo: string; notes: string;
+  target_audience: string; geo: string; notes: string; gsc_property: string;
 };
 
 const EMPTY: NewClientForm = {
   name: "", url: "", sector: "", brand_name: "",
   tone_of_voice: "Autorevole & tecnico", usp: "",
-  products_services: "", target_audience: "", geo: "", notes: "",
+  products_services: "", target_audience: "", geo: "", notes: "", gsc_property: "",
 };
 
 const TONES = ["Autorevole & tecnico", "Empatico & problem solving", "Diretto & commerciale"];
@@ -120,19 +120,23 @@ export default function ClientsPage() {
                   <div><Label>Nome identificativo *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Rossi Impianti Srl" /></div>
                   <div><Label>URL sito</Label><Input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://www.cliente.it" /></div>
                   <div><Label>Settore</Label><Input value={form.sector} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))} placeholder="Impianti industriali" /></div>
-                  <div><Label>Brand name</Label><Input value={form.brand_name} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} placeholder="Rossi Impianti" /></div>
-                  <div><Label>Zona geografica</Label><Input value={form.geo} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Nord Italia" /></div>
+                  <div><Label>Brand name</Label><Input value={form.brand_name} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} placeholder="Es. Lumi Company — agenzia SEO B2B" /></div>
+                  <div><Label>Zona geografica</Label><Input value={form.geo} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Es. Italia, focus su Milano e Roma" /></div>
                   <div>
                     <Label>Tono di voce</Label>
                     <Select value={form.tone_of_voice} onChange={(e) => setForm((f) => ({ ...f, tone_of_voice: e.target.value }))}>
                       {TONES.map((t) => <option key={t}>{t}</option>)}
                     </Select>
                   </div>
-                  <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="PMI manifatturiere" /></div>
+                  <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="Es. Marketing manager di PMI italiane, 30-50 anni" /></div>
                 </div>
-                <div><Label>Prodotti / Servizi *</Label><Textarea rows={4} value={form.products_services} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Un prodotto/servizio per riga" /></div>
-                <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Cosa distingue questo cliente?" /></div>
+                <div><Label>Prodotti / Servizi *</Label><Textarea rows={4} value={form.products_services} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Es. Consulenza SEO, audit tecnici, content marketing" /></div>
+                <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico + content in un unico team interno" /></div>
                 <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Istruzioni particolari per i prompt GPT" /></div>
+                <div>
+                  <Label>GSC Property</Label>
+                  <Input value={form.gsc_property ?? ""} onChange={(e) => setForm((f) => ({ ...f, gsc_property: e.target.value }))} placeholder="Es. sc-domain:example.com oppure https://www.example.com/" />
+                </div>
 
                 <div className="flex gap-2 pt-1">
                   <Btn type="submit" loading={saving}>Salva cliente</Btn>

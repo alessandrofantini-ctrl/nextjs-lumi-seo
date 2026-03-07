@@ -16,8 +16,10 @@ Utente primario: HEAD of SEO (Alessandro). Non è un SaaS pubblico.
 ```
 app/
   login/              → unica pagina SENZA AppShell (nessun guard auth)
-  clients/            → lista clienti
-  clients/[id]/       → pagina principale (keyword management, GSC sync, briefs)
+  clients/            → lista clienti (form nuovo cliente con gsc_property)
+  clients/[id]/       → pagina principale con due tab:
+                          "Keyword" — keyword management, GSC sync, briefs
+                          "Monitoraggio" — tabella GSC con delta posizione, KPI card, filtri rapidi
   seo/                → analisi SEO tool (SERP + competitor + brief GPT-4o)
   writer/             → generazione articoli da brief
   impostazioni/       → gestione API keys (OpenAI, SerpAPI) + logout
@@ -74,7 +76,13 @@ Vedi `docs/adr/003-cannibalization-client-side.md` per la scelta architetturale.
 ```
 backlog → planned → brief_done → written → published
 ```
-I colori/label per ogni status sono definiti in `STATUS_META` all'inizio di `clients/[id]/page.tsx`.
+I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clients/[id]/page.tsx`.
+
+### 6. Tab Monitoraggio — pattern dati
+- Usa gli stessi dati keyword già caricati nella pagina (nessuna chiamata API separata).
+- `useMemo` per: `kwWithGsc`, `monitoraggioKw`, `monKpi`, `cannibSet`.
+- Colonna Delta: confronta `position` vs `position_prev` (scritto dal backend nel GSC sync).
+- `position_prev` è null finché non avviene un secondo sync GSC — in quel caso il badge mostra "—".
 
 ## Convenzioni
 

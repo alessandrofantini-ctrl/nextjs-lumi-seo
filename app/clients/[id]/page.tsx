@@ -34,7 +34,7 @@ const PRIORITY_CFG: Record<string, { label: string; dot: string }> = {
 type KW = {
   id: string; keyword: string; status: string; created_at: string;
   impressions?: number; clicks?: number; position?: number; ctr?: number;
-  gsc_updated_at?: string;
+  gsc_updated_at?: string; position_prev?: number; position_updated_at?: string;
   cluster?: string; intent?: string; priority?: string;
 };
 type Brief = { id: string; keyword: string; market: string; intent: string; created_at: string };
@@ -65,9 +65,15 @@ export default function ClientPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting]           = useState(false);
 
+  // Tab navigation
+  const [activeTab, setActiveTab] = useState<"keywords" | "monitoraggio">("keywords");
+
   // GSC sync
   const [gscSyncing, setGscSyncing] = useState(false);
   const [gscResult, setGscResult]   = useState<{ synced: number; total: number } | null>(null);
+
+  // Monitoraggio filters
+  const [monFilter, setMonFilter] = useState<"all" | "top10" | "incalo" | "cannib">("all");
 
   // keyword controls
   const [newKw, setNewKw]       = useState("");
@@ -232,6 +238,34 @@ export default function ClientPage() {
 
   const cannibalization = useMemo(() => detectCannibalization(client?.keyword_history ?? []), [client]);
 
+  // ── Monitoraggio ─────────────────────────────
+  const cannibSet = useMemo(() => {
+    const s = new Set<string>();
+    cannibalization.forEach((p) => { s.add(p.a); s.add(p.b); });
+    return s;
+  }, [cannibalization]);
+
+  const kwWithGsc = useMemo(
+    () => (client?.keyword_history ?? []).filter((k) => k.position != null),
+    [client],
+  );
+
+  const monitoraggioKw = useMemo(() => {
+    return kwWithGsc.filter((k) => {
+      if (monFilter === "top10")  return (k.position ?? 999) <= 10;
+      if (monFilter === "incalo") return k.position_prev != null && (k.position ?? 999) > k.position_prev;
+      if (monFilter === "cannib") return cannibSet.has(k.keyword);
+      return true;
+    });
+  }, [kwWithGsc, monFilter, cannibSet]);
+
+  const monKpi = useMemo(() => ({
+    totale:     kwWithGsc.length,
+    top10:      kwWithGsc.filter((k) => (k.position ?? 999) <= 10).length,
+    inCalo:     kwWithGsc.filter((k) => k.position_prev != null && (k.position ?? 999) > k.position_prev).length,
+    cannib:     kwWithGsc.filter((k) => cannibSet.has(k.keyword)).length,
+  }), [kwWithGsc, cannibSet]);
+
   if (loading) return <div className="p-8 text-[#ababab] text-[13px]">Caricamento…</div>;
   if (error && !client) return <div className="p-8 max-w-xl"><Alert type="error">{error}</Alert></div>;
   if (!client) return null;
@@ -293,6 +327,36 @@ export default function ClientPage() {
 
           {!editMode ? (
             <>
+              {/* ── Banner profilo incompleto ── */}
+              {(!client.usp || !client.tone_of_voice || !client.gsc_property) && (
+                <Alert type="warn">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>
+                      <strong>Profilo incompleto</strong> — compila USP, Tone of Voice e GSC Property per ottenere brief di qualità migliore.
+                    </span>
+                    <button
+                      onClick={() => { setEditMode(true); setError(null); }}
+                      className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline whitespace-nowrap"
+                    >
+                      Completa profilo →
+                    </button>
+                  </div>
+                </Alert>
+              )}
+
+              {/* ── Prossimi passi (solo senza keyword) ── */}
+              {client.keyword_history.length === 0 && (
+                <Card className="p-5">
+                  <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-4">Prossimi passi</p>
+                  <div className="flex flex-col gap-2.5">
+                    <StepItem done>Cliente creato</StepItem>
+                    <StepItem>Aggiungi le prime keyword target</StepItem>
+                    <StepItem>Sincronizza Google Search Console</StepItem>
+                    <StepItem>Genera il primo brief SEO</StepItem>
+                  </div>
+                </Card>
+              )}
+
               {/* ── Profilo ── */}
               <SectionTitle>Profilo</SectionTitle>
               <Card className="p-5">
@@ -310,8 +374,18 @@ export default function ClientPage() {
                 {client.notes            && <InfoBlock label="Note strategiche SEO" value={client.notes}             />}
               </Card>
 
+              {/* ── Tab navigation ── */}
+              <div className="flex gap-1 border-b border-[#e8e8e8] -mb-4">
+                <TabBtn active={activeTab === "keywords"} onClick={() => setActiveTab("keywords")}>
+                  Keyword ({client.keyword_history.length})
+                </TabBtn>
+                <TabBtn active={activeTab === "monitoraggio"} onClick={() => setActiveTab("monitoraggio")}>
+                  Monitoraggio {monKpi.totale > 0 && `(${monKpi.totale})`}
+                </TabBtn>
+              </div>
+
               {/* ── Keyword pipeline ── */}
-              <div>
+              {activeTab === "keywords" && <div>
                 {/* Toolbar */}
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide">
@@ -486,9 +560,104 @@ export default function ClientPage() {
                     </>
                   )}
                 </Card>
-              </div>
+              </div>}
 
-              {/* ── Brief ── */}
+              {/* ── Monitoraggio tab ── */}
+              {activeTab === "monitoraggio" && (
+                <div className="flex flex-col gap-5">
+                  {/* KPI Cards */}
+                  <div className="grid grid-cols-4 gap-3">
+                    <MonKpiCard label="Monitorate" value={monKpi.totale} />
+                    <MonKpiCard label="Top 10" value={monKpi.top10} />
+                    <MonKpiCard label="In calo" value={monKpi.inCalo} warn={monKpi.inCalo > 0} />
+                    <MonKpiCard label="Cannibalizzazione" value={monKpi.cannib} warn={monKpi.cannib > 0} />
+                  </div>
+
+                  {/* Filtri rapidi */}
+                  <div className="flex gap-2">
+                    <MonFilterBtn active={monFilter === "all"} onClick={() => setMonFilter("all")}>Tutte</MonFilterBtn>
+                    <MonFilterBtn active={monFilter === "top10"} onClick={() => setMonFilter("top10")}>Top 10</MonFilterBtn>
+                    <MonFilterBtn active={monFilter === "incalo"} onClick={() => setMonFilter("incalo")}>In calo</MonFilterBtn>
+                    <MonFilterBtn active={monFilter === "cannib"} onClick={() => setMonFilter("cannib")}>Cannibalizzazione</MonFilterBtn>
+                  </div>
+
+                  {/* Tabella */}
+                  {monitoraggioKw.length === 0 ? (
+                    <p className="text-[#ababab] text-[13px]">
+                      {kwWithGsc.length === 0
+                        ? "Nessuna keyword con dati GSC. Sincronizza Google Search Console."
+                        : "Nessuna keyword corrisponde al filtro selezionato."}
+                    </p>
+                  ) : (
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-[12px]">
+                          <thead>
+                            <tr className="border-b border-[#f0f0f0] text-[10px] font-medium text-[#ababab] uppercase tracking-wide">
+                              <th className="text-left px-4 py-3">Keyword</th>
+                              <th className="text-right px-3 py-3">Posizione</th>
+                              <th className="text-right px-3 py-3">Delta</th>
+                              <th className="text-right px-3 py-3">Click</th>
+                              <th className="text-right px-3 py-3">Impressioni</th>
+                              <th className="text-right px-3 py-3">CTR</th>
+                              <th className="text-center px-3 py-3">Status</th>
+                              <th className="text-center px-3 py-3">Cannib.</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#f8f8f8]">
+                            {monitoraggioKw.map((kw) => {
+                              const sCfg = STATUS_CFG[kw.status ?? "backlog"] ?? STATUS_CFG.backlog;
+                              const isCannib = cannibSet.has(kw.keyword);
+                              const delta = kw.position_prev != null && kw.position != null
+                                ? kw.position_prev - kw.position  // positivo = miglioramento
+                                : null;
+                              return (
+                                <tr key={kw.id} className="hover:bg-[#fafaf9] transition-colors">
+                                  <td className="px-4 py-3 font-medium text-[#1a1a1a] max-w-[200px] truncate">
+                                    {kw.keyword}
+                                  </td>
+                                  <td className="px-3 py-3 text-right text-[#555] font-medium">
+                                    #{kw.position?.toFixed(1)}
+                                  </td>
+                                  <td className="px-3 py-3 text-right">
+                                    <DeltaBadge delta={delta} />
+                                  </td>
+                                  <td className="px-3 py-3 text-right text-[#737373]">
+                                    {kw.clicks?.toLocaleString("it-IT") ?? "—"}
+                                  </td>
+                                  <td className="px-3 py-3 text-right text-[#737373]">
+                                    {kw.impressions?.toLocaleString("it-IT") ?? "—"}
+                                  </td>
+                                  <td className="px-3 py-3 text-right text-[#737373]">
+                                    {kw.ctr != null ? `${(kw.ctr * 100).toFixed(1)}%` : "—"}
+                                  </td>
+                                  <td className="px-3 py-3 text-center">
+                                    <span
+                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border"
+                                      style={{ color: sCfg.color, background: sCfg.bg, borderColor: sCfg.border }}
+                                    >
+                                      {sCfg.label}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-3 text-center">
+                                    {isCannib && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-50 text-orange-600 border border-orange-200">
+                                        ⚠ Cannib.
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* ── Brief (sempre visibile) ── */}
               <div>
                 <SectionTitle>Brief generati ({client.briefs.length})</SectionTitle>
                 {client.briefs.length === 0 ? (
@@ -521,18 +690,18 @@ export default function ClientPage() {
                   <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
                   <div><Label>URL sito</Label><Input value={form.url || ""} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://…" /></div>
                   <div><Label>Settore</Label><Input value={form.sector || ""} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))} /></div>
-                  <div><Label>Brand name</Label><Input value={form.brand_name || ""} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} /></div>
-                  <div><Label>Zona geografica</Label><Input value={form.geo || ""} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} /></div>
+                  <div><Label>Brand name</Label><Input value={form.brand_name || ""} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} placeholder="Es. Lumi Company — agenzia SEO B2B" /></div>
+                  <div><Label>Zona geografica</Label><Input value={form.geo || ""} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Es. Italia, focus su Milano e Roma" /></div>
                   <div>
                     <Label>Tono di voce</Label>
                     <Select value={form.tone_of_voice || ""} onChange={(e) => setForm((f) => ({ ...f, tone_of_voice: e.target.value }))}>
                       {TONES.map((t) => <option key={t}>{t}</option>)}
                     </Select>
                   </div>
-                  <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience || ""} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} /></div>
+                  <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience || ""} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="Es. Marketing manager di PMI italiane, 30-50 anni" /></div>
                 </div>
-                <div><Label>Prodotti / Servizi</Label><Textarea rows={4} value={form.products_services || ""} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Un prodotto/servizio per riga" /></div>
-                <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp || ""} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} /></div>
+                <div><Label>Prodotti / Servizi</Label><Textarea rows={4} value={form.products_services || ""} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Es. Consulenza SEO, audit tecnici, content marketing" /></div>
+                <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp || ""} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico + content in un unico team interno" /></div>
                 <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes || ""} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
                 <div>
                   <Label>GSC Property</Label>
@@ -735,6 +904,72 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-3">{children}</p>;
+}
+
+function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2.5 text-[12px] font-medium border-b-2 transition-colors ${
+        active
+          ? "border-[#1a1a1a] text-[#1a1a1a]"
+          : "border-transparent text-[#ababab] hover:text-[#555]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StepItem({ done = false, children }: { done?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className={`text-[15px] leading-none ${done ? "text-green-500" : "text-[#d0d0d0]"}`}>
+        {done ? "✅" : "⬜"}
+      </span>
+      <span className={`text-[13px] ${done ? "text-[#555] line-through" : "text-[#333]"}`}>{children}</span>
+    </div>
+  );
+}
+
+function MonKpiCard({ label, value, warn = false }: { label: string; value: number; warn?: boolean }) {
+  return (
+    <div className="rounded-xl border border-[#e8e8e8] bg-white p-4">
+      <p className="text-[10px] font-medium text-[#ababab] uppercase tracking-wide mb-1.5">{label}</p>
+      <p className={`text-[22px] font-semibold ${warn && value > 0 ? "text-orange-500" : "text-[#1a1a1a]"}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DeltaBadge({ delta }: { delta: number | null }) {
+  if (delta === null) {
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#f0f0ef] text-[#ababab] border border-[#e0e0e0]">—</span>;
+  }
+  const abs = Math.abs(delta).toFixed(1);
+  if (delta > 0) {
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-600 border border-green-200">↑ +{abs}</span>;
+  }
+  if (delta < 0) {
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-50 text-red-600 border border-red-200">↓ -{abs}</span>;
+  }
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#f0f0ef] text-[#ababab] border border-[#e0e0e0]">—</span>;
+}
+
+function MonFilterBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-md text-[11px] font-medium border transition-colors ${
+        active
+          ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
+          : "text-[#737373] border-[#e0e0e0] hover:border-[#ccc] hover:text-[#1a1a1a]"
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
 function InfoItem({ label, value, link }: { label: string; value?: string; link?: boolean }) {
