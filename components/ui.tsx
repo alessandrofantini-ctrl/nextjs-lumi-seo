@@ -11,7 +11,7 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle?: stri
 
 export function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`px-8 py-7 max-w-3xl ${className}`}>
+    <div className={`px-8 py-7 ${className}`}>
       {children}
     </div>
   );
