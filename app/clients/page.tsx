@@ -100,7 +100,10 @@ export default function ClientsPage() {
             </Btn>
           ) : (
             <Card className="mb-8 p-6">
-              <h2 className="text-[13px] font-semibold text-[#555] mb-5">Nuovo profilo cliente</h2>
+              <h2 className="text-[13px] font-semibold text-[#555] mb-1">Nuovo profilo cliente</h2>
+              <p className="text-[12px] text-[#ababab] mb-5">
+                Questi dati vengono usati per generare brief e articoli SEO personalizzati — più sono precisi, migliore sarà l&apos;output.
+              </p>
 
               {/* Auto-generate */}
               <div className="mb-5 p-4 rounded-lg bg-[#f7f7f6] border border-[#e8e8e8]">
@@ -121,21 +124,24 @@ export default function ClientsPage() {
                   <div><Label>URL sito</Label><Input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://www.cliente.it" /></div>
                   <div><Label>Settore</Label><Input value={form.sector} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))} placeholder="Impianti industriali" /></div>
                   <div><Label>Brand name</Label><Input value={form.brand_name} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} placeholder="Es. Lumi Company — agenzia SEO B2B" /></div>
-                  <div><Label>Zona geografica</Label><Input value={form.geo} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Es. Italia, focus su Milano e Roma" /></div>
+                  <div><Label>Area geografica</Label><Input value={form.geo} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Es. Italia, con focus su Milano e Roma" /></div>
                   <div>
                     <Label>Tono di voce</Label>
                     <Select value={form.tone_of_voice} onChange={(e) => setForm((f) => ({ ...f, tone_of_voice: e.target.value }))}>
                       {TONES.map((t) => <option key={t}>{t}</option>)}
                     </Select>
                   </div>
-                  <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="Es. Marketing manager di PMI italiane, 30-50 anni" /></div>
+                  <div className="col-span-2"><Label>Pubblico target</Label><Input value={form.target_audience} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="Es. Marketing manager di PMI italiane, 30-50 anni" /></div>
                 </div>
-                <div><Label>Prodotti / Servizi *</Label><Textarea rows={4} value={form.products_services} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Es. Consulenza SEO, audit tecnici, content marketing" /></div>
-                <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico + content in un unico team interno" /></div>
+                <div><Label>Prodotti / Servizi</Label><Textarea rows={4} value={form.products_services} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Es. Consulenza SEO, audit tecnici, content marketing" /></div>
+                <div><Label>Proposta di valore unica (USP)</Label><Textarea rows={2} value={form.usp} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico e content in un unico team interno" /></div>
                 <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Istruzioni particolari per i prompt GPT" /></div>
                 <div>
-                  <Label>GSC Property</Label>
+                  <Label>Proprietà Google Search Console</Label>
                   <Input value={form.gsc_property ?? ""} onChange={(e) => setForm((f) => ({ ...f, gsc_property: e.target.value }))} placeholder="Es. sc-domain:example.com oppure https://www.example.com/" />
+                  <p className="text-[11px] text-[#ababab] mt-1.5">
+                    Trovi il formato esatto in Google Search Console → seleziona la proprietà → copia l&apos;URL dalla barra in alto.
+                  </p>
                 </div>
 
                 <div className="flex gap-2 pt-1">

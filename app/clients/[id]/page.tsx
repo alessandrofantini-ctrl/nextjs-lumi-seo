@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Label, Input, Textarea, Select, Btn, Alert, Card } from "@/components/ui";
 import { apiFetch } from "@/lib/api";
 import { detectCannibalization } from "@/lib/cannibalization";
+import { CheckCircle, Circle } from "lucide-react";
 
 const TONES = ["Autorevole & tecnico", "Empatico & problem solving", "Diretto & commerciale"];
 
@@ -73,7 +74,7 @@ export default function ClientPage() {
   const [gscResult, setGscResult]   = useState<{ synced: number; total: number } | null>(null);
 
   // Monitoraggio filters
-  const [monFilter, setMonFilter] = useState<"all" | "top10" | "incalo" | "cannib">("all");
+  const [monFilter, setMonFilter] = useState<"all" | "top10" | "incalo" | "opportunita">("all");
 
   // keyword controls
   const [newKw, setNewKw]       = useState("");
@@ -250,21 +251,24 @@ export default function ClientPage() {
     [client],
   );
 
-  const monitoraggioKw = useMemo(() => {
+  const isOpportunita = (k: KW) =>
+    (k.impressions ?? 0) > 100 && (k.position ?? 999) > 10 && k.status === "backlog";
+
+  const filteredMonKw = useMemo(() => {
     return kwWithGsc.filter((k) => {
-      if (monFilter === "top10")  return (k.position ?? 999) <= 10;
-      if (monFilter === "incalo") return k.position_prev != null && (k.position ?? 999) > k.position_prev;
-      if (monFilter === "cannib") return cannibSet.has(k.keyword);
+      if (monFilter === "top10")      return (k.position ?? 999) <= 10;
+      if (monFilter === "incalo")     return k.position_prev != null && (k.position ?? 999) > k.position_prev;
+      if (monFilter === "opportunita") return isOpportunita(k);
       return true;
     });
-  }, [kwWithGsc, monFilter, cannibSet]);
+  }, [kwWithGsc, monFilter]);
 
   const monKpi = useMemo(() => ({
-    totale:     kwWithGsc.length,
-    top10:      kwWithGsc.filter((k) => (k.position ?? 999) <= 10).length,
-    inCalo:     kwWithGsc.filter((k) => k.position_prev != null && (k.position ?? 999) > k.position_prev).length,
-    cannib:     kwWithGsc.filter((k) => cannibSet.has(k.keyword)).length,
-  }), [kwWithGsc, cannibSet]);
+    totale:      kwWithGsc.length,
+    top10:       kwWithGsc.filter((k) => (k.position ?? 999) <= 10).length,
+    inCalo:      kwWithGsc.filter((k) => k.position_prev != null && (k.position ?? 999) > k.position_prev).length,
+    opportunita: kwWithGsc.filter(isOpportunita).length,
+  }), [kwWithGsc]);
 
   if (loading) return <div className="p-8 text-[#ababab] text-[13px]">Caricamento…</div>;
   if (error && !client) return <div className="p-8 max-w-xl"><Alert type="error">{error}</Alert></div>;
@@ -332,29 +336,16 @@ export default function ClientPage() {
                 <Alert type="warn">
                   <div className="flex items-center justify-between gap-3">
                     <span>
-                      <strong>Profilo incompleto</strong> — compila USP, Tone of Voice e GSC Property per ottenere brief di qualità migliore.
+                      <strong>Profilo incompleto</strong> — aggiungi USP, Tono di voce e Proprietà GSC per ottenere brief di qualità migliore.
                     </span>
                     <button
                       onClick={() => { setEditMode(true); setError(null); }}
                       className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline whitespace-nowrap"
                     >
-                      Completa profilo →
+                      Modifica profilo →
                     </button>
                   </div>
                 </Alert>
-              )}
-
-              {/* ── Prossimi passi (solo senza keyword) ── */}
-              {client.keyword_history.length === 0 && (
-                <Card className="p-5">
-                  <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-4">Prossimi passi</p>
-                  <div className="flex flex-col gap-2.5">
-                    <StepItem done>Cliente creato</StepItem>
-                    <StepItem>Aggiungi le prime keyword target</StepItem>
-                    <StepItem>Sincronizza Google Search Console</StepItem>
-                    <StepItem>Genera il primo brief SEO</StepItem>
-                  </div>
-                </Card>
               )}
 
               {/* ── Profilo ── */}
@@ -464,9 +455,11 @@ export default function ClientPage() {
                   </form>
 
                   {client.keyword_history.length === 0 ? (
-                    <p className="text-[#ababab] text-[13px]">
-                      Nessuna keyword ancora. Aggiungile una alla volta o importa un CSV.
-                    </p>
+                    <OnboardingSteps
+                      hasKeywords={client.keyword_history.length > 0}
+                      hasGsc={client.keyword_history.some((k) => k.gsc_updated_at != null)}
+                      hasBrief={client.briefs.length > 0}
+                    />
                   ) : (
                     <>
                       {/* Search + Sort + View */}
@@ -570,7 +563,7 @@ export default function ClientPage() {
                     <MonKpiCard label="Monitorate" value={monKpi.totale} />
                     <MonKpiCard label="Top 10" value={monKpi.top10} />
                     <MonKpiCard label="In calo" value={monKpi.inCalo} warn={monKpi.inCalo > 0} />
-                    <MonKpiCard label="Cannibalizzazione" value={monKpi.cannib} warn={monKpi.cannib > 0} />
+                    <MonKpiCard label="Opportunità" value={monKpi.opportunita} warn={monKpi.opportunita > 0} />
                   </div>
 
                   {/* Filtri rapidi */}
@@ -578,16 +571,16 @@ export default function ClientPage() {
                     <MonFilterBtn active={monFilter === "all"} onClick={() => setMonFilter("all")}>Tutte</MonFilterBtn>
                     <MonFilterBtn active={monFilter === "top10"} onClick={() => setMonFilter("top10")}>Top 10</MonFilterBtn>
                     <MonFilterBtn active={monFilter === "incalo"} onClick={() => setMonFilter("incalo")}>In calo</MonFilterBtn>
-                    <MonFilterBtn active={monFilter === "cannib"} onClick={() => setMonFilter("cannib")}>Cannibalizzazione</MonFilterBtn>
+                    <MonFilterBtn active={monFilter === "opportunita"} onClick={() => setMonFilter("opportunita")}>Opportunità</MonFilterBtn>
                   </div>
 
                   {/* Tabella */}
-                  {monitoraggioKw.length === 0 ? (
+                  {kwWithGsc.length === 0 ? (
                     <p className="text-[#ababab] text-[13px]">
-                      {kwWithGsc.length === 0
-                        ? "Nessuna keyword con dati GSC. Sincronizza Google Search Console."
-                        : "Nessuna keyword corrisponde al filtro selezionato."}
+                      Nessun dato GSC ancora — sincronizza Google Search Console dalla tab Keyword.
                     </p>
+                  ) : filteredMonKw.length === 0 ? (
+                    <p className="text-[#ababab] text-[13px]">Nessuna keyword corrisponde al filtro selezionato.</p>
                   ) : (
                     <Card className="overflow-hidden">
                       <div className="overflow-x-auto">
@@ -601,13 +594,15 @@ export default function ClientPage() {
                               <th className="text-right px-3 py-3">Impressioni</th>
                               <th className="text-right px-3 py-3">CTR</th>
                               <th className="text-center px-3 py-3">Status</th>
+                              <th className="text-center px-3 py-3">Opportunità</th>
                               <th className="text-center px-3 py-3">Cannib.</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#f8f8f8]">
-                            {monitoraggioKw.map((kw) => {
+                            {filteredMonKw.map((kw) => {
                               const sCfg = STATUS_CFG[kw.status ?? "backlog"] ?? STATUS_CFG.backlog;
                               const isCannib = cannibSet.has(kw.keyword);
+                              const isOpp   = isOpportunita(kw);
                               const delta = kw.position_prev != null && kw.position != null
                                 ? kw.position_prev - kw.position  // positivo = miglioramento
                                 : null;
@@ -638,6 +633,13 @@ export default function ClientPage() {
                                     >
                                       {sCfg.label}
                                     </span>
+                                  </td>
+                                  <td className="px-3 py-3 text-center">
+                                    {isOpp && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-50 text-orange-600 border border-orange-200">
+                                        ⚡ Opportunità
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="px-3 py-3 text-center">
                                     {isCannib && (
@@ -684,32 +686,38 @@ export default function ClientPage() {
           ) : (
             /* ── Modifica ── */
             <Card className="p-6">
-              <h2 className="text-[13px] font-semibold text-[#555] mb-5">Modifica profilo</h2>
+              <h2 className="text-[13px] font-semibold text-[#555] mb-1">Modifica profilo</h2>
+              <p className="text-[12px] text-[#ababab] mb-5">
+                Questi dati vengono usati per generare brief e articoli SEO personalizzati — più sono precisi, migliore sarà l&apos;output.
+              </p>
               <form onSubmit={saveEdit} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Nome *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
                   <div><Label>URL sito</Label><Input value={form.url || ""} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://…" /></div>
                   <div><Label>Settore</Label><Input value={form.sector || ""} onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))} /></div>
                   <div><Label>Brand name</Label><Input value={form.brand_name || ""} onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))} placeholder="Es. Lumi Company — agenzia SEO B2B" /></div>
-                  <div><Label>Zona geografica</Label><Input value={form.geo || ""} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Es. Italia, focus su Milano e Roma" /></div>
+                  <div><Label>Area geografica</Label><Input value={form.geo || ""} onChange={(e) => setForm((f) => ({ ...f, geo: e.target.value }))} placeholder="Es. Italia, con focus su Milano e Roma" /></div>
                   <div>
                     <Label>Tono di voce</Label>
                     <Select value={form.tone_of_voice || ""} onChange={(e) => setForm((f) => ({ ...f, tone_of_voice: e.target.value }))}>
                       {TONES.map((t) => <option key={t}>{t}</option>)}
                     </Select>
                   </div>
-                  <div className="col-span-2"><Label>Target audience</Label><Input value={form.target_audience || ""} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="Es. Marketing manager di PMI italiane, 30-50 anni" /></div>
+                  <div className="col-span-2"><Label>Pubblico target</Label><Input value={form.target_audience || ""} onChange={(e) => setForm((f) => ({ ...f, target_audience: e.target.value }))} placeholder="Es. Marketing manager di PMI italiane, 30-50 anni" /></div>
                 </div>
                 <div><Label>Prodotti / Servizi</Label><Textarea rows={4} value={form.products_services || ""} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Es. Consulenza SEO, audit tecnici, content marketing" /></div>
-                <div><Label>USP / Punti di forza</Label><Textarea rows={2} value={form.usp || ""} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico + content in un unico team interno" /></div>
+                <div><Label>Proposta di valore unica (USP)</Label><Textarea rows={2} value={form.usp || ""} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico e content in un unico team interno" /></div>
                 <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes || ""} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
                 <div>
-                  <Label>GSC Property</Label>
+                  <Label>Proprietà Google Search Console</Label>
                   <Input
                     value={form.gsc_property || ""}
                     onChange={(e) => setForm((f) => ({ ...f, gsc_property: e.target.value }))}
-                    placeholder="sc-domain:esempio.it oppure https://www.esempio.it/"
+                    placeholder="Es. sc-domain:example.com oppure https://www.example.com/"
                   />
+                  <p className="text-[11px] text-[#ababab] mt-1.5">
+                    Trovi il formato esatto in Google Search Console → seleziona la proprietà → copia l&apos;URL dalla barra in alto.
+                  </p>
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Btn type="submit" loading={saving}>Salva modifiche</Btn>
@@ -921,13 +929,37 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   );
 }
 
-function StepItem({ done = false, children }: { done?: boolean; children: React.ReactNode }) {
+function OnboardingStep({ done, children }: { done: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className={`text-[15px] leading-none ${done ? "text-green-500" : "text-[#d0d0d0]"}`}>
-        {done ? "✅" : "⬜"}
+    <div className="flex items-start gap-3">
+      {done
+        ? <CheckCircle size={17} className="text-green-500 shrink-0 mt-px" />
+        : <Circle     size={17} className="text-[#d0d0d0] shrink-0 mt-px" />}
+      <span className={`text-[13px] leading-snug ${done ? "text-[#ababab] line-through" : "text-[#333]"}`}>
+        {children}
       </span>
-      <span className={`text-[13px] ${done ? "text-[#555] line-through" : "text-[#333]"}`}>{children}</span>
+    </div>
+  );
+}
+
+function OnboardingSteps({ hasKeywords, hasGsc, hasBrief }: {
+  hasKeywords: boolean; hasGsc: boolean; hasBrief: boolean;
+}) {
+  return (
+    <div className="py-5 px-2">
+      <p className="text-[13px] font-semibold text-[#333] mb-4">Inizia il progetto SEO</p>
+      <div className="flex flex-col gap-3.5">
+        <OnboardingStep done>Cliente creato</OnboardingStep>
+        <OnboardingStep done={hasKeywords}>
+          Aggiungi le prime keyword target — usa il pulsante &ldquo;Aggiungi keyword&rdquo; qui sopra
+        </OnboardingStep>
+        <OnboardingStep done={hasGsc}>
+          Sincronizza Google Search Console per importare posizioni e traffico
+        </OnboardingStep>
+        <OnboardingStep done={hasBrief}>
+          Genera il primo brief SEO dalla tab Keyword
+        </OnboardingStep>
+      </div>
     </div>
   );
 }
