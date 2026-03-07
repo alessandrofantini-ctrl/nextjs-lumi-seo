@@ -10,6 +10,15 @@ import { CheckCircle, Circle } from "lucide-react";
 
 const TONES = ["Autorevole & tecnico", "Empatico & problem solving", "Diretto & commerciale"];
 
+const LOCATION_OPTIONS = [
+  { value: 2380, label: "Italia" },
+  { value: 2840, label: "Stati Uniti" },
+  { value: 2826, label: "Regno Unito" },
+  { value: 2276, label: "Germania" },
+  { value: 2250, label: "Francia" },
+  { value: 2724, label: "Spagna" },
+];
+
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   backlog:    { label: "In lista",     color: "#8f8f8f", bg: "#f5f5f4", border: "#e0e0e0" },
   planned:    { label: "Pianificata",  color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
@@ -37,6 +46,7 @@ type KW = {
   impressions?: number; clicks?: number; position?: number; ctr?: number;
   gsc_updated_at?: string; position_prev?: number; position_updated_at?: string;
   cluster?: string; intent?: string; priority?: string;
+  search_volume?: number; volume_updated_at?: string;
 };
 type Brief = { id: string; keyword: string; market: string; intent: string; created_at: string };
 
@@ -44,7 +54,7 @@ type ClientFull = {
   id: string; name: string; url?: string; sector?: string; brand_name?: string;
   tone_of_voice?: string; usp?: string; products_services?: string;
   target_audience?: string; geo?: string; notes?: string;
-  gsc_property?: string;
+  gsc_property?: string; language_code?: string; location_code?: number;
   keyword_history: KW[]; briefs: Brief[];
   created_at?: string; updated_at?: string;
 };
@@ -100,6 +110,7 @@ export default function ClientPage() {
         usp: data.usp || "", products_services: data.products_services || "",
         target_audience: data.target_audience || "", geo: data.geo || "", notes: data.notes || "",
         gsc_property: data.gsc_property || "",
+        language_code: data.language_code || "it", location_code: data.location_code ?? 2380,
       });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Errore caricamento");
@@ -265,6 +276,10 @@ export default function ClientPage() {
       if (a.position != null && b.position != null) return a.position - b.position;
       if (a.position != null) return -1;
       if (b.position != null) return 1;
+      // Entrambe senza posizione: ordina per volume desc se disponibile
+      if (a.search_volume != null && b.search_volume != null) return b.search_volume - a.search_volume;
+      if (a.search_volume != null) return -1;
+      if (b.search_volume != null) return 1;
       return a.keyword.localeCompare(b.keyword);
     });
   }, [kwWithGsc, monFilter]);
@@ -606,6 +621,7 @@ export default function ClientPage() {
                               <th className="text-right px-3 py-3">Click</th>
                               <th className="text-right px-3 py-3">Impressioni</th>
                               <th className="text-right px-3 py-3">CTR</th>
+                              <th className="text-right px-3 py-3">Volume</th>
                               <th className="text-center px-3 py-3">Status</th>
                               <th className="text-center px-3 py-3">Opportunità</th>
                               <th className="text-center px-3 py-3">Cannib.</th>
@@ -638,6 +654,9 @@ export default function ClientPage() {
                                   </td>
                                   <td className="px-3 py-3 text-right text-[#737373]">
                                     {kw.ctr != null ? `${(kw.ctr * 100).toFixed(1)}%` : "—"}
+                                  </td>
+                                  <td className="px-3 py-3 text-right text-[#737373]">
+                                    {kw.search_volume?.toLocaleString("it-IT") ?? "—"}
                                   </td>
                                   <td className="px-3 py-3 text-center">
                                     <span
@@ -721,6 +740,19 @@ export default function ClientPage() {
                 <div><Label>Prodotti / Servizi</Label><Textarea rows={4} value={form.products_services || ""} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Es. Consulenza SEO, audit tecnici, content marketing" /></div>
                 <div><Label>Proposta di valore unica (USP)</Label><Textarea rows={2} value={form.usp || ""} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico e content in un unico team interno" /></div>
                 <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes || ""} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Lingua (DataForSEO)</Label>
+                    <Input value={form.language_code || "it"} onChange={(e) => setForm((f) => ({ ...f, language_code: e.target.value }))} placeholder="it" />
+                    <p className="text-[11px] text-[#ababab] mt-1.5">Codice lingua ISO 639-1. Es: it, en, de, fr</p>
+                  </div>
+                  <div>
+                    <Label>Paese (DataForSEO)</Label>
+                    <Select value={form.location_code ?? 2380} onChange={(e) => setForm((f) => ({ ...f, location_code: Number(e.target.value) }))}>
+                      {LOCATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </Select>
+                  </div>
+                </div>
                 <div>
                   <Label>Proprietà Google Search Console</Label>
                   <Input
@@ -914,6 +946,16 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
                 <span>{kw.clicks?.toLocaleString("it-IT")} click</span>
                 <span>pos. {kw.position?.toFixed(1)}</span>
                 <span>CTR {((kw.ctr ?? 0) * 100).toFixed(1)}%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Search volume */}
+          {kw.search_volume != null && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-[#ababab] font-medium uppercase tracking-wide">Volume</span>
+              <div className="text-[12px] text-[#555]">
+                {kw.search_volume.toLocaleString("it-IT")} vol/mese
               </div>
             </div>
           )}

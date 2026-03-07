@@ -85,7 +85,26 @@ I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clie
 - `position_prev` è null finché non avviene un secondo sync GSC — in quel caso il badge mostra "—".
 - KPI e filtro "Opportunità": `impressions > 100 AND position > 10 AND status === 'backlog'`.
 - Colonna "Cannibalizzazione" ancora presente in tabella (usa `cannibSet` da `detectCannibalization`).
-- Empty state Monitoraggio: "Nessun dato GSC ancora — sincronizza Google Search Console dalla tab Keyword."
+- Colonna "Volume": `search_volume` scritto automaticamente dal backend via DataForSEO al salvataggio keyword.
+- Ordinamento `filteredMonKw`: keyword con position asc → keyword senza position ordinate per `search_volume` desc → alfabetico.
+- Empty state Monitoraggio: visibile solo se `keyword_history.length === 0`.
+
+### 7. Tipo KW — campi completi
+```typescript
+type KW = {
+  id, keyword, status, created_at
+  impressions?, clicks?, position?, ctr?, gsc_updated_at?
+  position_prev?, position_updated_at?       // GSC sync historicization
+  cluster?, intent?, priority?
+  search_volume?, volume_updated_at?         // DataForSEO (migration 005)
+}
+```
+
+### 8. Form cliente — campi DataForSEO
+`language_code` (string, default "it") e `location_code` (number, default 2380) presenti in:
+- `NewClientForm` + `EMPTY` in `app/clients/page.tsx`
+- `ClientFull` (→ `EditForm` via Omit) in `app/clients/[id]/page.tsx`
+Renderizzati come Input testo + Select con LOCATION_OPTIONS prima della sezione GSC.
 
 ## Convenzioni
 

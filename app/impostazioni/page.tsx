@@ -84,6 +84,14 @@ export default function ImpostazioniPage() {
             </form>
           </div>
 
+          {/* DataForSEO */}
+          <div className="bg-white border border-[#e8e8e8] rounded-xl p-5">
+            <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-3">DataForSEO</p>
+            <p className="text-[12px] text-[#8f8f8f] leading-relaxed">
+              Le credenziali DataForSEO (login e password) sono configurate a livello di server tramite variabili d&apos;ambiente. Contatta l&apos;amministratore per aggiornarle.
+            </p>
+          </div>
+
           {/* Note */}
           <div className="p-4 rounded-lg border border-[#e8e8e8] bg-[#f7f7f6]">
             <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-2">Note</p>
