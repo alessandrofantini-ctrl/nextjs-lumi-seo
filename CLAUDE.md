@@ -98,7 +98,26 @@ type KW = {
   cluster?, intent?, priority?
   search_volume?, volume_updated_at?         // DataForSEO (migration 005)
 }
+
+type PositionSnapshot = {
+  position: number; clicks: number; impressions: number; ctr: number; recorded_at: string;
+};
+
+type VisibilitySnapshot = {
+  recorded_at: string; avg_position: number; total_clicks: number; total_impressions: number;
+};
 ```
+
+### 9. Storico posizioni — pattern fetch lazy
+- `KeywordRow`: al primo expand chiama `GET /api/clients/{id}/keywords/{kw_id}/history`
+  - Flag `historyLoaded` evita re-fetch multipli
+  - Se `history.length < 2` → messaggio "Dati insufficienti"
+  - Se `history.length >= 2` → `ResponsiveContainer + LineChart` recharts (asse Y reversed)
+- `ClientPage` (tab Monitoraggio): `useEffect([activeTab, clientId])` chiama `GET /api/clients/{id}/visibility-history`
+  - Stato `visibilityHistory: VisibilitySnapshot[]` — vuoto finché non caricato
+  - Sezione "Andamento progetto" visibile solo se `visibilityHistory.length >= 2`
+  - Grafico aggregato (avg_position asse sx, total_clicks asse dx) + tabella confronto Oggi/-30/-60/-90gg
+- recharts: importato da `"recharts"` — già disponibile nel progetto, nessuna installazione extra
 
 ### 8. Form cliente — campi DataForSEO
 `language_code` (string, default "it") e `location_code` (number, default 2380) presenti in:
