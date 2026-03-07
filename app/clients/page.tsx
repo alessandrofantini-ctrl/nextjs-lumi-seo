@@ -11,15 +11,26 @@ type NewClientForm = {
   name: string; url: string; sector: string; brand_name: string;
   tone_of_voice: string; usp: string; products_services: string;
   target_audience: string; geo: string; notes: string; gsc_property: string;
+  language_code: string; location_code: number;
 };
 
 const EMPTY: NewClientForm = {
   name: "", url: "", sector: "", brand_name: "",
   tone_of_voice: "Autorevole & tecnico", usp: "",
   products_services: "", target_audience: "", geo: "", notes: "", gsc_property: "",
+  language_code: "it", location_code: 2380,
 };
 
 const TONES = ["Autorevole & tecnico", "Empatico & problem solving", "Diretto & commerciale"];
+
+const LOCATION_OPTIONS = [
+  { value: 2380, label: "Italia" },
+  { value: 2840, label: "Stati Uniti" },
+  { value: 2826, label: "Regno Unito" },
+  { value: 2276, label: "Germania" },
+  { value: 2250, label: "Francia" },
+  { value: 2724, label: "Spagna" },
+];
 
 export default function ClientsPage() {
   const [clients, setClients]   = useState<Client[]>([]);
@@ -136,6 +147,19 @@ export default function ClientsPage() {
                 <div><Label>Prodotti / Servizi</Label><Textarea rows={4} value={form.products_services} onChange={(e) => setForm((f) => ({ ...f, products_services: e.target.value }))} placeholder="Es. Consulenza SEO, audit tecnici, content marketing" /></div>
                 <div><Label>Proposta di valore unica (USP)</Label><Textarea rows={2} value={form.usp} onChange={(e) => setForm((f) => ({ ...f, usp: e.target.value }))} placeholder="Es. Unici a combinare SEO tecnico e content in un unico team interno" /></div>
                 <div><Label>Note strategiche SEO</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Istruzioni particolari per i prompt GPT" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Lingua (DataForSEO)</Label>
+                    <Input value={form.language_code} onChange={(e) => setForm((f) => ({ ...f, language_code: e.target.value }))} placeholder="it" />
+                    <p className="text-[11px] text-[#ababab] mt-1.5">Codice lingua ISO 639-1. Es: it, en, de, fr</p>
+                  </div>
+                  <div>
+                    <Label>Paese (DataForSEO)</Label>
+                    <Select value={form.location_code} onChange={(e) => setForm((f) => ({ ...f, location_code: Number(e.target.value) }))}>
+                      {LOCATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </Select>
+                  </div>
+                </div>
                 <div>
                   <Label>Proprietà Google Search Console</Label>
                   <Input value={form.gsc_property ?? ""} onChange={(e) => setForm((f) => ({ ...f, gsc_property: e.target.value }))} placeholder="Es. sc-domain:example.com oppure https://www.example.com/" />
