@@ -80,9 +80,12 @@ I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clie
 
 ### 6. Tab Monitoraggio — pattern dati
 - Usa gli stessi dati keyword già caricati nella pagina (nessuna chiamata API separata).
-- `useMemo` per: `kwWithGsc`, `monitoraggioKw`, `monKpi`, `cannibSet`.
+- `useMemo` per: `kwWithGsc`, `filteredMonKw`, `monKpi`, `cannibSet`.
 - Colonna Delta: confronta `position` vs `position_prev` (scritto dal backend nel GSC sync).
 - `position_prev` è null finché non avviene un secondo sync GSC — in quel caso il badge mostra "—".
+- KPI e filtro "Opportunità": `impressions > 100 AND position > 10 AND status === 'backlog'`.
+- Colonna "Cannibalizzazione" ancora presente in tabella (usa `cannibSet` da `detectCannibalization`).
+- Empty state Monitoraggio: "Nessun dato GSC ancora — sincronizza Google Search Console dalla tab Keyword."
 
 ## Convenzioni
 
