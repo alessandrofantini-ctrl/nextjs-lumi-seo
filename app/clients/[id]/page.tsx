@@ -67,7 +67,7 @@ export default function ClientPage() {
   const [deleting, setDeleting]           = useState(false);
 
   // Tab navigation
-  const [activeTab, setActiveTab] = useState<"keywords" | "monitoraggio">("keywords");
+  const [activeTab, setActiveTab] = useState<"keywords" | "monitoraggio" | "profilo">("monitoraggio");
 
   // GSC sync
   const [gscSyncing, setGscSyncing] = useState(false);
@@ -325,55 +325,70 @@ export default function ClientPage() {
       )}
 
       <div className="flex-1 overflow-y-auto bg-[#f7f7f6]">
-        <div className="px-8 py-7 max-w-3xl flex flex-col gap-8">
+        <div className="px-8 py-7 flex flex-col gap-8">
 
           {error && <Alert type="error">{error}</Alert>}
 
           {!editMode ? (
             <>
-              {/* ── Banner profilo incompleto ── */}
-              {(!client.usp || !client.tone_of_voice || !client.gsc_property) && (
-                <Alert type="warn">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>
-                      <strong>Profilo incompleto</strong> — aggiungi USP, Tono di voce e Proprietà GSC per ottenere brief di qualità migliore.
-                    </span>
-                    <button
-                      onClick={() => { setEditMode(true); setError(null); }}
-                      className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline whitespace-nowrap"
-                    >
-                      Modifica profilo →
-                    </button>
-                  </div>
-                </Alert>
-              )}
-
-              {/* ── Profilo ── */}
-              <SectionTitle>Profilo</SectionTitle>
-              <Card className="p-5">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-5">
-                  <InfoItem label="URL sito"         value={client.url}             link />
-                  <InfoItem label="Brand name"       value={client.brand_name}      />
-                  <InfoItem label="Settore"          value={client.sector}          />
-                  <InfoItem label="Zona geografica"  value={client.geo}             />
-                  <InfoItem label="Tono di voce"     value={client.tone_of_voice}   />
-                  <InfoItem label="Target audience"  value={client.target_audience} />
-                  <InfoItem label="GSC Property"     value={client.gsc_property}    />
+              {/* ── KPI bar (sempre visibile) ── */}
+              {monKpi.totale > 0 && (
+                <div className="grid grid-cols-4 gap-3">
+                  <MonKpiCard label="Monitorate" value={monKpi.totale} />
+                  <MonKpiCard label="Top 10" value={monKpi.top10} />
+                  <MonKpiCard label="In calo" value={monKpi.inCalo} warn={monKpi.inCalo > 0} />
+                  <MonKpiCard label="Opportunità" value={monKpi.opportunita} warn={monKpi.opportunita > 0} />
                 </div>
-                {client.products_services && <InfoBlock label="Prodotti / Servizi"  value={client.products_services} />}
-                {client.usp              && <InfoBlock label="USP / Punti di forza" value={client.usp}               />}
-                {client.notes            && <InfoBlock label="Note strategiche SEO" value={client.notes}             />}
-              </Card>
+              )}
 
               {/* ── Tab navigation ── */}
               <div className="flex gap-1 border-b border-[#e8e8e8] -mb-4">
-                <TabBtn active={activeTab === "keywords"} onClick={() => setActiveTab("keywords")}>
-                  Keyword ({client.keyword_history.length})
-                </TabBtn>
                 <TabBtn active={activeTab === "monitoraggio"} onClick={() => setActiveTab("monitoraggio")}>
                   Monitoraggio {monKpi.totale > 0 && `(${monKpi.totale})`}
                 </TabBtn>
+                <TabBtn active={activeTab === "keywords"} onClick={() => setActiveTab("keywords")}>
+                  Keyword ({client.keyword_history.length})
+                </TabBtn>
+                <TabBtn active={activeTab === "profilo"} onClick={() => setActiveTab("profilo")}>
+                  Profilo
+                </TabBtn>
               </div>
+
+              {/* ── Profilo tab ── */}
+              {activeTab === "profilo" && (
+                <>
+                  {(!client.usp || !client.tone_of_voice || !client.gsc_property) && (
+                    <Alert type="warn">
+                      <div className="flex items-center justify-between gap-3">
+                        <span>
+                          <strong>Profilo incompleto</strong> — aggiungi USP, Tono di voce e Proprietà GSC per ottenere brief di qualità migliore.
+                        </span>
+                        <button
+                          onClick={() => { setEditMode(true); setError(null); }}
+                          className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline whitespace-nowrap"
+                        >
+                          Modifica profilo →
+                        </button>
+                      </div>
+                    </Alert>
+                  )}
+                  <SectionTitle>Profilo</SectionTitle>
+                  <Card className="p-5">
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-5">
+                      <InfoItem label="URL sito"         value={client.url}             link />
+                      <InfoItem label="Brand name"       value={client.brand_name}      />
+                      <InfoItem label="Settore"          value={client.sector}          />
+                      <InfoItem label="Zona geografica"  value={client.geo}             />
+                      <InfoItem label="Tono di voce"     value={client.tone_of_voice}   />
+                      <InfoItem label="Target audience"  value={client.target_audience} />
+                      <InfoItem label="GSC Property"     value={client.gsc_property}    />
+                    </div>
+                    {client.products_services && <InfoBlock label="Prodotti / Servizi"  value={client.products_services} />}
+                    {client.usp              && <InfoBlock label="USP / Punti di forza" value={client.usp}               />}
+                    {client.notes            && <InfoBlock label="Note strategiche SEO" value={client.notes}             />}
+                  </Card>
+                </>
+              )}
 
               {/* ── Keyword pipeline ── */}
               {activeTab === "keywords" && <div>
@@ -558,14 +573,6 @@ export default function ClientPage() {
               {/* ── Monitoraggio tab ── */}
               {activeTab === "monitoraggio" && (
                 <div className="flex flex-col gap-5">
-                  {/* KPI Cards */}
-                  <div className="grid grid-cols-4 gap-3">
-                    <MonKpiCard label="Monitorate" value={monKpi.totale} />
-                    <MonKpiCard label="Top 10" value={monKpi.top10} />
-                    <MonKpiCard label="In calo" value={monKpi.inCalo} warn={monKpi.inCalo > 0} />
-                    <MonKpiCard label="Opportunità" value={monKpi.opportunita} warn={monKpi.opportunita > 0} />
-                  </div>
-
                   {/* Filtri rapidi */}
                   <div className="flex gap-2">
                     <MonFilterBtn active={monFilter === "all"} onClick={() => setMonFilter("all")}>Tutte</MonFilterBtn>
