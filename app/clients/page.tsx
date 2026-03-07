@@ -161,7 +161,16 @@ export default function ClientsPage() {
             </div>
           )}
 
-          {loading && <p className="text-[#ababab] text-[13px]">Caricamento…</p>}
+          {loading && (
+            <div className="flex flex-col gap-2">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[56px] rounded-lg border border-[#e8e8e8] bg-[#f0f0f0] animate-pulse"
+                />
+              ))}
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             {filtered.map((c) => (
