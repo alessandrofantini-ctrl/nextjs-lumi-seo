@@ -37,3 +37,35 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
   return response;
 }
+
+export async function apiFetchForm(path: string, body: FormData, options: RequestInit = {}) {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const apiHeaders: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    const openaiKey = localStorage.getItem("lumi_openai_key");
+    const serpKey   = localStorage.getItem("lumi_serpapi_key");
+    if (openaiKey) apiHeaders["X-OpenAI-Key"] = openaiKey;
+    if (serpKey)   apiHeaders["X-SerpAPI-Key"] = serpKey;
+  }
+
+  const response = await fetch(`${API}${path}`, {
+    ...options,
+    method: options.method ?? "POST",
+    body,
+    headers: {
+      // No Content-Type — browser sets multipart/form-data + boundary automatically
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      ...apiHeaders,
+      ...(options.headers as Record<string, string>),
+    },
+  });
+
+  if (response.status === 401 && typeof window !== "undefined") {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
+  return response;
+}
