@@ -21,6 +21,7 @@ app/
                           "Keyword" — keyword management, GSC sync, briefs
                           "Monitoraggio" — tabella GSC con delta posizione, KPI card, filtri rapidi
   seo/                → analisi SEO tool (SERP + competitor + brief GPT-4o)
+  migration/          → mapping redirect 301 tra sito vecchio e nuovo (CSV Screaming Frog + GPT-4o)
   writer/             → generazione articoli da brief
   impostazioni/       → gestione API keys (OpenAI, SerpAPI) + logout
 components/
@@ -88,6 +89,29 @@ I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clie
 - Colonna "Volume": `search_volume` scritto automaticamente dal backend via DataForSEO al salvataggio keyword.
 - Ordinamento `filteredMonKw`: keyword con position asc → keyword senza position ordinate per `search_volume` desc → alfabetico.
 - Empty state Monitoraggio: visibile solo se `keyword_history.length === 0`.
+
+### 10. Tipi Migrazione
+
+```typescript
+type MigrationResult = {
+  old_url: string; old_title: string; old_h1: string; old_inlinks: number;
+  new_url: string | null; new_title: string | null;
+  confidence: number; match_type: "exact" | "slug" | "gpt" | "no_match";
+  reason: string | null;
+};
+
+type MigrationStats = {
+  total: number; matched: number; no_match: number;
+  stats: { exact: number; slug: number; gpt: number; no_match: number };
+};
+```
+
+Pagina `app/migration/page.tsx`:
+- Step 1 "config": input domini + upload CSV Screaming Frog (drag & drop)
+- Step 2 "loading": progress steps animati durante analisi
+- Step 3 "results": KPI card + filtri + tabella + export CSV
+- Usa `apiFetch` con `body: FormData` per `/api/migration/analyze`
+- Export via `POST /api/migration/export-csv` — download blob CSV
 
 ### 7. Tipo KW — campi completi
 ```typescript
