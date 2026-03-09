@@ -316,6 +316,14 @@ export default function ClientPage() {
     opportunita: kwWithGsc.filter(isOpportunita).length,
   }), [kwWithGsc]);
 
+  const lastSync = useMemo(() => {
+    const dates = client?.keyword_history
+      .map((k) => k.gsc_updated_at)
+      .filter(Boolean) as string[];
+    if (!dates?.length) return null;
+    return new Date(Math.max(...dates.map((d) => new Date(d).getTime())));
+  }, [client]);
+
   if (loading) return <div className="p-8 text-[#ababab] text-[13px]">Caricamento…</div>;
   if (error && !client) return <div className="p-8 max-w-xl"><Alert type="error">{error}</Alert></div>;
   if (!client) return null;
@@ -325,6 +333,19 @@ export default function ClientPage() {
     const s = k.status || "backlog";
     kwCounts[s] = (kwCounts[s] || 0) + 1;
   });
+
+  const syncLabel = (() => {
+    if (!lastSync) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const syncDay = new Date(lastSync);
+    syncDay.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today.getTime() - syncDay.getTime()) / 86400000);
+    if (diffDays === 0) return { text: "sync oggi",            color: "#16a34a" };
+    if (diffDays === 1) return { text: "sync ieri",            color: "#16a34a" };
+    if (diffDays <= 7)  return { text: `sync ${diffDays}gg fa`, color: "#8f8f8f" };
+    return                      { text: `sync ${diffDays}gg fa`, color: "#d97706" };
+  })();
 
   return (
     <div className="flex flex-col h-full">
@@ -341,6 +362,11 @@ export default function ClientPage() {
               {client.updated_at && (
                 <span className="ml-3 text-[#c0c0c0]">
                   aggiornato {new Date(client.updated_at).toLocaleDateString("it-IT")}
+                </span>
+              )}
+              {syncLabel && (
+                <span className="ml-3 text-[11px]" style={{ color: syncLabel.color }}>
+                  {syncLabel.text}
                 </span>
               )}
             </p>
@@ -445,13 +471,18 @@ export default function ClientPage() {
                   </p>
                   <div className="flex items-center gap-2">
                     {client.gsc_property && (
-                      <button
-                        onClick={syncGSC}
-                        disabled={gscSyncing}
-                        className="text-[11px] text-[#2563eb] hover:text-[#1d4ed8] border border-[#bfdbfe] hover:border-[#93c5fd] bg-[#eff6ff] rounded-md px-2.5 py-1 transition-colors disabled:opacity-50"
-                      >
-                        {gscSyncing ? "Sincronizzazione…" : "Sincronizza GSC"}
-                      </button>
+                      <div className="flex flex-col items-end">
+                        <button
+                          onClick={syncGSC}
+                          disabled={gscSyncing}
+                          className="text-[11px] text-[#2563eb] hover:text-[#1d4ed8] border border-[#bfdbfe] hover:border-[#93c5fd] bg-[#eff6ff] rounded-md px-2.5 py-1 transition-colors disabled:opacity-50"
+                        >
+                          {gscSyncing ? "Sincronizzazione…" : "Sincronizza GSC"}
+                        </button>
+                        <p className="text-[10px] text-[#ababab] mt-1">
+                          Sync automatico ogni lunedì
+                        </p>
+                      </div>
                     )}
                     <input ref={fileInputRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFileImport} />
                     <button
