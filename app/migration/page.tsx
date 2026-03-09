@@ -6,7 +6,7 @@ import {
   Plus, X, ChevronDown,
 } from "lucide-react";
 import { PageHeader, Section, Card, Label, Input, Select, Btn, Alert, Badge } from "@/components/ui";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchForm } from "@/lib/api";
 
 // ── Tipi ────────────────────────────────────────────────────────────────────
 
@@ -317,11 +317,7 @@ export default function MigrationPage() {
     }, 4000);
 
     try {
-      const r = await apiFetch("/api/migration/analyze", {
-        method: "POST",
-        body: formData,
-        headers: { "Content-Type": "" } as Record<string, string>,
-      });
+      const r = await apiFetchForm("/api/migration/analyze", formData);
       if (!r.ok) {
         const d = await r.json();
         throw new Error(d.detail || "Errore analisi");
