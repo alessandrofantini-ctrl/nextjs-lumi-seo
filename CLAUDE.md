@@ -106,11 +106,29 @@ type MigrationStats = {
 };
 ```
 
+```typescript
+type LanguageMapping = {
+  language_code: string; label: string;
+  source_type: "subdirectory" | "domain"; source_value: string;
+  csv_file?: File;
+  destination_type: "subdirectory" | "domain" | "eliminated" | "consolidated";
+  destination_value: string; target_language_code?: string;
+};
+```
+
 Pagina `app/migration/page.tsx`:
-- Step 1 "config": input domini + upload CSV Screaming Frog (drag & drop)
+- Toggle: "Migrazione semplice" / "Migrazione multilingua"
+- Step 1 "config" semplice: input domini + upload CSV (drag & drop)
+- Step 1 "config" multilingua: dominio vecchio + old CSV + N card lingua (add/remove dinamico)
+  - Ogni lingua: codice, label, struttura sorgente (subdirectory|domain), destinazione (subdirectory|domain|eliminated|consolidated)
+  - Destinazione "consolidated": Select per scegliere lingua target (tra le altre già configurate)
+  - Destinazione non eliminata/consolidated: upload CSV per quella lingua
 - Step 2 "loading": progress steps animati durante analisi
-- Step 3 "results": KPI card + filtri + tabella + export CSV
-- Usa `apiFetch` con `body: FormData` per `/api/migration/analyze`
+- Step 3 "results": KPI card (+ card "Eliminate" se > 0) + riepilogo per-lingua (multilingual) + filtri + tabella + export CSV
+- Tabella: colonne "Lingua" e "Dominio" aggiuntive in modalità multilingual
+- Filtro lingua dinamico (Tutte | IT | EN | DE | ...) sopra la tabella in modalità multilingual
+- Badge `MatchTypeBadge` estesi: "eliminated" (rosso scuro), "consolidated" (arancione)
+- Usa `apiFetch` con `body: FormData` e `config` JSON per `/api/migration/analyze`
 - Export via `POST /api/migration/export-csv` — download blob CSV
 
 ### 7. Tipo KW — campi completi
