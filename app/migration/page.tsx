@@ -1,21 +1,29 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, CheckCircle, Circle, ArrowRight, Download, Plus, X } from "lucide-react";
+import {
+  Upload, CheckCircle, Circle, ArrowRight, Download,
+  Plus, X, ChevronDown,
+} from "lucide-react";
 import { PageHeader, Section, Card, Label, Input, Select, Btn, Alert, Badge } from "@/components/ui";
 import { apiFetch } from "@/lib/api";
 
 // ── Tipi ────────────────────────────────────────────────────────────────────
 
-type LanguageMapping = {
-  language_code: string;
-  label: string;
-  source_type: "subdirectory" | "domain";
-  source_value: string;
-  csv_file?: File;
-  destination_type: "subdirectory" | "domain" | "eliminated" | "consolidated";
-  destination_value: string;
-  target_language_code?: string;
+type NewDomain = {
+  id: string;          // uuid locale (React key + FormData key)
+  domain: string;      // es. https://www.nuovo.it
+  label: string;       // es. "Italia" (opzionale ma presente come stringa vuota)
+  csv_file: File | null;
+};
+
+type LanguageRule = {
+  id: string;
+  pattern: string;                                         // es. "/en/" o "vecchio.com"
+  pattern_type: "subdirectory" | "domain";
+  target_domain_id: string;                               // id del NewDomain destinazione
+  behavior: "redirect" | "eliminated" | "consolidated";
+  consolidated_target_domain_id?: string;
 };
 
 type MatchType = "exact" | "slug" | "gpt" | "no_match" | "eliminated" | "consolidated";
@@ -27,18 +35,11 @@ type MigrationResult = {
   old_inlinks: number;
   new_url: string | null;
   new_title: string | null;
-  new_domain: string | null;
+  target_domain: string | null;
+  target_label: string | null;
   confidence: number;
   match_type: MatchType;
   reason: string | null;
-  language_code: string | null;
-};
-
-type ByLanguageStat = {
-  total: number;
-  matched: number;
-  no_match: number;
-  eliminated?: number;
 };
 
 type MigrationStats = {
@@ -54,12 +55,29 @@ type MigrationStats = {
     eliminated: number;
     consolidated: number;
   };
-  by_language: Record<string, ByLanguageStat>;
 };
 
 type FilterType = "all" | "certain" | "review" | "nomatch";
 
 // ── Utility ──────────────────────────────────────────────────────────────────
+
+function genId(): string {
+  return crypto.randomUUID();
+}
+
+function emptyDomain(): NewDomain {
+  return { id: genId(), domain: "", label: "", csv_file: null };
+}
+
+function emptyRule(): LanguageRule {
+  return {
+    id: genId(),
+    pattern: "",
+    pattern_type: "subdirectory",
+    target_domain_id: "",
+    behavior: "redirect",
+  };
+}
 
 function extractHostname(url: string | null): string {
   if (!url) return "";
@@ -70,26 +88,17 @@ function extractHostname(url: string | null): string {
   }
 }
 
-function emptyLang(): LanguageMapping {
-  return {
-    language_code: "",
-    label: "",
-    source_type: "subdirectory",
-    source_value: "",
-    destination_type: "subdirectory",
-    destination_value: "",
-  };
-}
-
 // ── FileDropZone ─────────────────────────────────────────────────────────────
 
 function FileDropZone({
   label,
+  hint,
   file,
   onFile,
   compact = false,
 }: {
-  label: string;
+  label?: string;
+  hint?: string;
   file: File | null;
   onFile: (f: File) => void;
   compact?: boolean;
@@ -107,6 +116,7 @@ function FileDropZone({
   return (
     <div>
       {label && <Label>{label}</Label>}
+      {hint && <p className="text-[11px] text-[#aaa] mb-1.5">{hint}</p>}
       <div
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -114,24 +124,23 @@ function FileDropZone({
         onDrop={handleDrop}
         className={[
           "flex items-center justify-center gap-2 rounded-lg border-2 border-dashed cursor-pointer transition-colors",
-          compact ? "p-3" : "flex-col p-6",
-          dragging
-            ? "border-[#999] bg-[#f5f5f4]"
-            : file
-            ? "border-[#22c55e] bg-green-50"
+          compact ? "p-3" : "flex-col p-5",
+          dragging ? "border-[#999] bg-[#f5f5f4]"
+            : file ? "border-[#22c55e] bg-green-50"
             : "border-[#d9d9d9] hover:border-[#aaa] bg-[#fafafa]",
         ].join(" ")}
       >
         {file ? (
           <>
             <CheckCircle size={14} className="text-green-500 shrink-0" />
-            <span className="text-[11px] text-[#555] truncate max-w-[200px]">{file.name}</span>
+            <span className="text-[11px] text-[#555] truncate max-w-[260px]">{file.name}</span>
+            <span className="text-[10px] text-[#aaa]">{(file.size / 1024).toFixed(0)} KB</span>
           </>
         ) : (
           <>
             <Upload size={14} className="text-[#aaa] shrink-0" />
             <span className="text-[12px] text-[#8f8f8f]">
-              {compact ? "CSV" : "Trascina CSV o clicca per selezionare"}
+              {compact ? "Carica CSV" : "Trascina CSV o clicca per selezionare"}
             </span>
           </>
         )}
@@ -165,34 +174,17 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 
 function MatchTypeBadge({ type }: { type: MatchType }) {
   const map: Record<MatchType, { label: string; cls: string }> = {
-    exact:       { label: "Esatto",      cls: "bg-[#f0f0ef] text-[#1a1a1a] border-[#d9d9d9]" },
-    slug:        { label: "Slug",        cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    gpt:         { label: "GPT",         cls: "bg-purple-50 text-purple-700 border-purple-200" },
-    no_match:    { label: "Nessuno",     cls: "bg-red-50 text-red-500 border-red-200" },
-    eliminated:  { label: "Eliminata",   cls: "bg-red-100 text-red-700 border-red-300" },
-    consolidated:{ label: "Consolidata", cls: "bg-orange-50 text-orange-600 border-orange-200" },
+    exact:        { label: "Esatto",      cls: "bg-[#f0f0ef] text-[#1a1a1a] border-[#d9d9d9]" },
+    slug:         { label: "Slug",        cls: "bg-blue-50 text-blue-700 border-blue-200" },
+    gpt:          { label: "GPT",         cls: "bg-purple-50 text-purple-700 border-purple-200" },
+    no_match:     { label: "Nessuno",     cls: "bg-red-50 text-red-500 border-red-200" },
+    eliminated:   { label: "Eliminata",   cls: "bg-red-100 text-red-700 border-red-300" },
+    consolidated: { label: "Consolidata", cls: "bg-orange-50 text-orange-600 border-orange-200" },
   };
   const { label, cls } = map[type] ?? map.no_match;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${cls}`}>
       {label}
-    </span>
-  );
-}
-
-// ── Badge lingua ─────────────────────────────────────────────────────────────
-
-function LangBadge({ code, matchType }: { code: string | null; matchType: MatchType }) {
-  if (!code) return <span className="text-[#d0d0d0] text-[11px]">—</span>;
-  const cls =
-    matchType === "eliminated"
-      ? "bg-red-100 text-red-700"
-      : matchType === "consolidated"
-      ? "bg-orange-50 text-orange-600"
-      : "bg-[#f0f0ef] text-[#555]";
-  return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide ${cls}`}>
-      {code.toUpperCase()}
     </span>
   );
 }
@@ -230,202 +222,71 @@ function LoadingSteps({ current }: { current: number }) {
   );
 }
 
-// ── Card configurazione lingua ────────────────────────────────────────────────
-
-function LanguageMappingCard({
-  lm,
-  index,
-  otherLanguages,
-  onUpdate,
-  onRemove,
-}: {
-  lm: LanguageMapping;
-  index: number;
-  otherLanguages: { code: string; label: string }[];
-  onUpdate: (updates: Partial<LanguageMapping>) => void;
-  onRemove: () => void;
-}) {
-  const needsCsv =
-    lm.destination_type === "subdirectory" || lm.destination_type === "domain";
-
-  return (
-    <Card className="p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[12px] font-semibold text-[#1a1a1a]">Lingua {index + 1}</span>
-        <button
-          onClick={onRemove}
-          className="text-[#ccc] hover:text-red-500 transition-colors"
-          title="Rimuovi lingua"
-        >
-          <X size={14} />
-        </button>
-      </div>
-
-      {/* Codice + Label */}
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <Label>Codice</Label>
-          <Input
-            value={lm.language_code}
-            onChange={(e) => onUpdate({ language_code: e.target.value.toLowerCase() })}
-            placeholder="it"
-          />
-        </div>
-        <div>
-          <Label>Label</Label>
-          <Input
-            value={lm.label}
-            onChange={(e) => onUpdate({ label: e.target.value })}
-            placeholder="Italiano"
-          />
-        </div>
-      </div>
-
-      {/* Struttura sorgente */}
-      <div className="mb-3">
-        <Label>Struttura sorgente</Label>
-        <Select
-          value={lm.source_type}
-          onChange={(e) => onUpdate({ source_type: e.target.value as LanguageMapping["source_type"] })}
-        >
-          <option value="subdirectory">Subdirectory (es. /it/)</option>
-          <option value="domain">Dominio separato</option>
-        </Select>
-        <Input
-          value={lm.source_value}
-          onChange={(e) => onUpdate({ source_value: e.target.value })}
-          placeholder={lm.source_type === "subdirectory" ? "/it/" : "https://www.vecchio.com"}
-          className="mt-2"
-        />
-      </div>
-
-      {/* Destinazione */}
-      <div className="mb-0">
-        <Label>Destinazione</Label>
-        <Select
-          value={lm.destination_type}
-          onChange={(e) =>
-            onUpdate({
-              destination_type: e.target.value as LanguageMapping["destination_type"],
-              destination_value: "",
-              target_language_code: undefined,
-              csv_file: undefined,
-            })
-          }
-        >
-          <option value="subdirectory">Subdirectory (es. /it/)</option>
-          <option value="domain">Dominio separato</option>
-          <option value="eliminated">Lingua eliminata (nessun redirect)</option>
-          <option value="consolidated">Consolidata in altra lingua</option>
-        </Select>
-
-        {(lm.destination_type === "subdirectory" || lm.destination_type === "domain") && (
-          <div className="mt-2 flex flex-col gap-2">
-            <Input
-              value={lm.destination_value}
-              onChange={(e) => onUpdate({ destination_value: e.target.value })}
-              placeholder={lm.destination_type === "subdirectory" ? "/it/" : "https://www.nuovo.com"}
-            />
-            <FileDropZone
-              label=""
-              file={lm.csv_file ?? null}
-              onFile={(f) => onUpdate({ csv_file: f })}
-              compact
-            />
-          </div>
-        )}
-
-        {lm.destination_type === "consolidated" && (
-          <Select
-            value={lm.target_language_code ?? ""}
-            onChange={(e) => onUpdate({ target_language_code: e.target.value })}
-            className="mt-2"
-          >
-            <option value="">— Lingua target —</option>
-            {otherLanguages.map((ol) => (
-              <option key={ol.code} value={ol.code}>{ol.label || ol.code.toUpperCase()}</option>
-            ))}
-          </Select>
-        )}
-      </div>
-
-      {/* Avviso CSV mancante */}
-      {needsCsv && !lm.csv_file && (
-        <p className="text-[11px] text-[#e08000] mt-2">Carica il CSV Screaming Frog per questa lingua.</p>
-      )}
-    </Card>
-  );
-}
-
 // ── Pagina principale ─────────────────────────────────────────────────────────
 
 export default function MigrationPage() {
-  // Tipo migrazione
-  const [migrationType, setMigrationType] = useState<"simple" | "multilingual">("simple");
-  const [languageMappings, setLanguageMappings] = useState<LanguageMapping[]>([]);
-
-  // Campi comuni
+  // ── Config
   const [oldDomain, setOldDomain] = useState("");
   const [oldFile, setOldFile] = useState<File | null>(null);
+  const [newDomains, setNewDomains] = useState<NewDomain[]>([]);
+  const [languageRules, setLanguageRules] = useState<LanguageRule[]>([]);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
-  // Solo per migrazione semplice
-  const [newDomain, setNewDomain] = useState("");
-  const [newFile, setNewFile] = useState<File | null>(null);
-
-  // Navigazione step
+  // ── Navigazione step
   const [step, setStep] = useState<"config" | "loading" | "results">("config");
   const [loadingStep, setLoadingStep] = useState(0);
 
-  // Risultati
+  // ── Risultati
   const [results, setResults] = useState<MigrationResult[]>([]);
   const [stats, setStats] = useState<MigrationStats | null>(null);
 
-  // Filtri
+  // ── Filtri
   const [filter, setFilter] = useState<FilterType>("all");
-  const [languageFilter, setLanguageFilter] = useState<string | null>(null);
+  const [domainFilter, setDomainFilter] = useState<string | null>(null);
 
-  // UI state
+  // ── UI
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Gestione language mappings ─────────────────────────────────────────────
+  // ── Gestione newDomains ────────────────────────────────────────────────────
 
-  function addLanguage() {
-    setLanguageMappings((prev) => [...prev, emptyLang()]);
+  function addDomain() {
+    setNewDomains((prev) => [...prev, emptyDomain()]);
   }
 
-  function removeLanguage(index: number) {
-    setLanguageMappings((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function updateLanguage(index: number, updates: Partial<LanguageMapping>) {
-    setLanguageMappings((prev) =>
-      prev.map((lm, i) => (i === index ? { ...lm, ...updates } : lm))
+  function removeDomain(id: string) {
+    setNewDomains((prev) => prev.filter((d) => d.id !== id));
+    // Rimuovi regole che puntano a questo dominio
+    setLanguageRules((prev) =>
+      prev.filter((r) => r.target_domain_id !== id && r.consolidated_target_domain_id !== id)
     );
+  }
+
+  function updateDomain(id: string, updates: Partial<NewDomain>) {
+    setNewDomains((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+  }
+
+  // ── Gestione languageRules ─────────────────────────────────────────────────
+
+  function addRule() {
+    setLanguageRules((prev) => [...prev, emptyRule()]);
+  }
+
+  function removeRule(id: string) {
+    setLanguageRules((prev) => prev.filter((r) => r.id !== id));
+  }
+
+  function updateRule(id: string, updates: Partial<LanguageRule>) {
+    setLanguageRules((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
   }
 
   // ── Validazione ────────────────────────────────────────────────────────────
 
-  function isSimpleValid() {
-    return Boolean(oldFile && newFile && oldDomain && newDomain);
-  }
-
-  function isMultilingualValid() {
-    if (!oldFile || !oldDomain || languageMappings.length === 0) return false;
-    for (const lm of languageMappings) {
-      if (!lm.language_code || !lm.source_value) return false;
-      if (
-        (lm.destination_type === "subdirectory" || lm.destination_type === "domain") &&
-        (!lm.destination_value || !lm.csv_file)
-      )
-        return false;
-      if (lm.destination_type === "consolidated" && !lm.target_language_code) return false;
-    }
-    return true;
-  }
-
-  const canAnalyze = migrationType === "simple" ? isSimpleValid() : isMultilingualValid();
+  const canAnalyze =
+    Boolean(oldDomain) &&
+    Boolean(oldFile) &&
+    newDomains.length > 0 &&
+    newDomains.every((d) => d.domain && d.csv_file);
 
   // ── Avvia analisi ──────────────────────────────────────────────────────────
 
@@ -435,32 +296,21 @@ export default function MigrationPage() {
     setAnalyzing(true);
     setError(null);
     setLoadingStep(0);
-    setLanguageFilter(null);
+    setDomainFilter(null);
 
     const formData = new FormData();
     formData.append("old_csv", oldFile!);
-
-    if (migrationType === "simple") {
-      formData.append(
-        "config",
-        JSON.stringify({ migration_type: "simple", old_domain: oldDomain, new_domain: newDomain })
-      );
-      formData.append("new_csv_default", newFile!);
-    } else {
-      formData.append(
-        "config",
-        JSON.stringify({
-          migration_type: "multilingual",
-          old_domain: oldDomain,
-          language_mappings: languageMappings.map(({ csv_file: _f, ...rest }) => rest),
-        })
-      );
-      languageMappings.forEach((lm) => {
-        if (lm.csv_file) {
-          formData.append(`new_csv_${lm.language_code}`, lm.csv_file);
-        }
-      });
-    }
+    formData.append(
+      "config",
+      JSON.stringify({
+        old_domain: oldDomain,
+        new_domains: newDomains.map(({ csv_file: _f, ...rest }) => rest),
+        language_rules: languageRules.map(({ id: _id, ...rest }) => rest),
+      })
+    );
+    newDomains.forEach((nd) => {
+      if (nd.csv_file) formData.append(`new_csv_${nd.id}`, nd.csv_file);
+    });
 
     const stepTimer = setInterval(() => {
       setLoadingStep((s) => Math.min(s + 1, 3));
@@ -484,7 +334,6 @@ export default function MigrationPage() {
         no_match: data.no_match,
         eliminated: data.eliminated ?? 0,
         stats: data.stats,
-        by_language: data.by_language ?? {},
       });
       setStep("results");
     } catch (e: unknown) {
@@ -501,11 +350,7 @@ export default function MigrationPage() {
   async function handleExport() {
     const r = await apiFetch("/api/migration/export-csv", {
       method: "POST",
-      body: JSON.stringify({
-        results,
-        old_domain: oldDomain,
-        new_domain: newDomain || null,
-      }),
+      body: JSON.stringify({ results, old_domain: oldDomain }),
     });
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
@@ -522,7 +367,7 @@ export default function MigrationPage() {
     if (filter === "certain" && r.confidence < 80) return false;
     if (filter === "review" && (r.confidence <= 0 || r.confidence >= 80)) return false;
     if (filter === "nomatch" && r.match_type !== "no_match") return false;
-    if (languageFilter !== null && r.language_code !== languageFilter) return false;
+    if (domainFilter !== null && r.target_domain !== domainFilter) return false;
     return true;
   });
 
@@ -531,8 +376,10 @@ export default function MigrationPage() {
       ? Math.round(results.reduce((s, r) => s + r.confidence, 0) / results.length)
       : 0;
 
-  const isMultilingual = Object.keys(stats?.by_language ?? {}).length > 0;
-  const uniqueLanguages = [...new Set(results.map((r) => r.language_code).filter(Boolean))] as string[];
+  const uniqueTargetDomains = [...new Set(
+    results.map((r) => r.target_domain).filter((d): d is string => d !== null)
+  )];
+  const showDomainFilter = uniqueTargetDomains.length > 1;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -546,102 +393,259 @@ export default function MigrationPage() {
       <Section>
         {/* ── Step 1: Configurazione ── */}
         {step === "config" && (
-          <div className="flex flex-col gap-6 max-w-3xl">
+          <div className="flex flex-col gap-6 max-w-5xl">
             {error && <Alert type="error">{error}</Alert>}
 
-            {/* Toggle tipo migrazione */}
-            <div className="flex gap-2">
-              {(["simple", "multilingual"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setMigrationType(t)}
-                  className={[
-                    "px-4 py-2 rounded-md text-[12px] font-medium transition-colors border",
-                    migrationType === t
-                      ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
-                      : "text-[#737373] border-[#e8e8e8] hover:text-[#1a1a1a] hover:bg-[#f0f0ef]",
-                  ].join(" ")}
-                >
-                  {t === "simple" ? "Migrazione semplice" : "Migrazione multilingua"}
-                </button>
-              ))}
-            </div>
+            {/* Due colonne: sito vecchio | sito nuovo */}
+            <div className="grid grid-cols-2 gap-6">
 
-            {/* ── Form semplice ── */}
-            {migrationType === "simple" && (
-              <Card className="p-6">
-                <div className="flex flex-col gap-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Dominio vecchio</Label>
-                      <Input value={oldDomain} onChange={(e) => setOldDomain(e.target.value)} placeholder="https://www.vecchio.it" />
-                    </div>
-                    <div>
-                      <Label>Dominio nuovo</Label>
-                      <Input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="https://www.nuovo.it" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FileDropZone label="CSV sito vecchio (Screaming Frog)" file={oldFile} onFile={setOldFile} />
-                    <FileDropZone label="CSV sito nuovo (Screaming Frog)" file={newFile} onFile={setNewFile} />
-                  </div>
-                  <Btn onClick={handleAnalyze} disabled={!canAnalyze || analyzing} loading={analyzing}>
-                    Avvia analisi
-                  </Btn>
+              {/* ── Sito vecchio ── */}
+              <Card className="p-5 flex flex-col gap-5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded bg-[#f0f0ef] text-[#555]">
+                    SITO VECCHIO
+                  </span>
                 </div>
+                <div>
+                  <Label>Dominio vecchio</Label>
+                  <Input
+                    value={oldDomain}
+                    onChange={(e) => setOldDomain(e.target.value)}
+                    placeholder="https://www.vecchio.it"
+                  />
+                </div>
+                <FileDropZone
+                  label="CSV Screaming Frog — tutti gli URL del sito vecchio"
+                  hint="Esporta da Screaming Frog includendo tutti i domini/lingue"
+                  file={oldFile}
+                  onFile={setOldFile}
+                />
               </Card>
-            )}
 
-            {/* ── Form multilingua ── */}
-            {migrationType === "multilingual" && (
-              <div className="flex flex-col gap-4">
-                <Card className="p-6">
-                  <div className="flex flex-col gap-5">
-                    <div>
-                      <Label>Dominio vecchio principale</Label>
-                      <Input value={oldDomain} onChange={(e) => setOldDomain(e.target.value)} placeholder="https://www.vecchio.it" />
-                    </div>
-                    <FileDropZone label="CSV sito vecchio (Screaming Frog — tutti gli URL)" file={oldFile} onFile={setOldFile} />
-                  </div>
-                </Card>
-
-                {/* Lingue */}
+              {/* ── Sito nuovo ── */}
+              <Card className="p-5 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-[13px] font-medium text-[#1a1a1a]">
-                    Lingue configurate ({languageMappings.length})
-                  </p>
-                  <Btn variant="ghost" onClick={addLanguage}>
-                    <Plus size={14} />
-                    Aggiungi lingua
-                  </Btn>
+                  <span className="text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded bg-green-100 text-green-700">
+                    SITO NUOVO
+                  </span>
                 </div>
 
-                {languageMappings.length === 0 && (
-                  <p className="text-[12px] text-[#aaa] text-center py-4">
-                    Aggiungi almeno una lingua per configurare il mapping.
+                {newDomains.length === 0 && (
+                  <p className="text-[12px] text-[#aaa] text-center py-3">
+                    Aggiungi almeno un dominio nuovo.
                   </p>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  {languageMappings.map((lm, idx) => (
-                    <LanguageMappingCard
-                      key={idx}
-                      lm={lm}
-                      index={idx}
-                      otherLanguages={languageMappings
-                        .filter((_, i) => i !== idx)
-                        .map((m) => ({ code: m.language_code, label: m.label }))}
-                      onUpdate={(updates) => updateLanguage(idx, updates)}
-                      onRemove={() => removeLanguage(idx)}
-                    />
+                <div className="flex flex-col gap-3">
+                  {newDomains.map((nd, idx) => (
+                    <div
+                      key={nd.id}
+                      className="p-3.5 rounded-lg border border-[#e8e8e8] bg-[#fafafa] flex flex-col gap-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-[#555]">
+                          Dominio {idx + 1}
+                        </span>
+                        <button
+                          onClick={() => removeDomain(nd.id)}
+                          className="text-[#ccc] hover:text-red-500 transition-colors"
+                          title="Rimuovi dominio"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label>Dominio</Label>
+                          <Input
+                            value={nd.domain}
+                            onChange={(e) => updateDomain(nd.id, { domain: e.target.value })}
+                            placeholder="https://www.nuovo.it"
+                          />
+                        </div>
+                        <div>
+                          <Label>Label (opzionale)</Label>
+                          <Input
+                            value={nd.label}
+                            onChange={(e) => updateDomain(nd.id, { label: e.target.value })}
+                            placeholder="Italia"
+                          />
+                        </div>
+                      </div>
+                      <FileDropZone
+                        file={nd.csv_file}
+                        onFile={(f) => updateDomain(nd.id, { csv_file: f })}
+                        compact
+                      />
+                    </div>
                   ))}
                 </div>
 
-                <Btn onClick={handleAnalyze} disabled={!canAnalyze || analyzing} loading={analyzing}>
-                  Avvia analisi
-                </Btn>
-              </div>
-            )}
+                <button
+                  onClick={addDomain}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-[#d0d0d0] text-[12px] text-[#737373] hover:text-[#1a1a1a] hover:border-[#999] transition-colors"
+                >
+                  <Plus size={13} />
+                  Aggiungi dominio nuovo
+                </button>
+              </Card>
+            </div>
+
+            {/* ── Accordion mappatura lingue ── */}
+            <div className="rounded-xl border border-[#e8e8e8] overflow-hidden">
+              <button
+                onClick={() => setRulesOpen(!rulesOpen)}
+                className="w-full flex items-center justify-between px-5 py-3.5 bg-[#fafafa] hover:bg-[#f0f0ef] transition-colors text-left"
+              >
+                <div>
+                  <span className="text-[13px] font-medium text-[#1a1a1a]">
+                    Configura mappatura lingue
+                  </span>
+                  <span className="ml-2 text-[12px] text-[#aaa]">opzionale</span>
+                  {languageRules.length > 0 && (
+                    <span className="ml-2 text-[11px] font-medium text-[#555] bg-[#e8e8e8] px-1.5 py-0.5 rounded">
+                      {languageRules.length} {languageRules.length === 1 ? "regola" : "regole"}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown
+                  size={15}
+                  className={`text-[#aaa] transition-transform ${rulesOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {rulesOpen && (
+                <div className="p-5 border-t border-[#e8e8e8] flex flex-col gap-4">
+                  <p className="text-[12px] text-[#737373]">
+                    Configura solo se il sito vecchio ha più lingue da distribuire su domini diversi.
+                    Se non configurata, il tool cerca il match migliore su tutti i domini nuovo.
+                  </p>
+
+                  {languageRules.length === 0 && (
+                    <p className="text-[12px] text-[#aaa] text-center py-2">
+                      Nessuna regola configurata.
+                    </p>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    {languageRules.map((rule) => (
+                      <div
+                        key={rule.id}
+                        className="flex items-start gap-2 p-3 rounded-lg border border-[#e8e8e8] bg-[#fafafa] flex-wrap"
+                      >
+                        {/* Tipo pattern */}
+                        <div className="w-36">
+                          <Label>Tipo pattern</Label>
+                          <Select
+                            value={rule.pattern_type}
+                            onChange={(e) =>
+                              updateRule(rule.id, {
+                                pattern_type: e.target.value as LanguageRule["pattern_type"],
+                              })
+                            }
+                          >
+                            <option value="subdirectory">Subdirectory</option>
+                            <option value="domain">Dominio</option>
+                          </Select>
+                        </div>
+
+                        {/* Pattern */}
+                        <div className="w-36">
+                          <Label>Pattern</Label>
+                          <Input
+                            value={rule.pattern}
+                            onChange={(e) => updateRule(rule.id, { pattern: e.target.value })}
+                            placeholder={rule.pattern_type === "subdirectory" ? "/en/" : "vecchio.com"}
+                          />
+                        </div>
+
+                        {/* Dominio destinazione */}
+                        <div className="w-40">
+                          <Label>Dominio nuovo</Label>
+                          <Select
+                            value={rule.target_domain_id}
+                            onChange={(e) =>
+                              updateRule(rule.id, { target_domain_id: e.target.value })
+                            }
+                          >
+                            <option value="">— Seleziona —</option>
+                            {newDomains.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.label || extractHostname(d.domain) || d.id.slice(0, 8)}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+
+                        {/* Comportamento */}
+                        <div className="w-40">
+                          <Label>Comportamento</Label>
+                          <Select
+                            value={rule.behavior}
+                            onChange={(e) =>
+                              updateRule(rule.id, {
+                                behavior: e.target.value as LanguageRule["behavior"],
+                                consolidated_target_domain_id: undefined,
+                              })
+                            }
+                          >
+                            <option value="redirect">Redirect normale</option>
+                            <option value="eliminated">Lingua eliminata</option>
+                            <option value="consolidated">Consolidata</option>
+                          </Select>
+                        </div>
+
+                        {/* Destinazione consolidamento */}
+                        {rule.behavior === "consolidated" && (
+                          <div className="w-40">
+                            <Label>Verso dominio</Label>
+                            <Select
+                              value={rule.consolidated_target_domain_id ?? ""}
+                              onChange={(e) =>
+                                updateRule(rule.id, {
+                                  consolidated_target_domain_id: e.target.value,
+                                })
+                              }
+                            >
+                              <option value="">— Seleziona —</option>
+                              {newDomains.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.label || extractHostname(d.domain) || d.id.slice(0, 8)}
+                                </option>
+                              ))}
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* Rimuovi */}
+                        <div className="flex items-end pb-0.5">
+                          <button
+                            onClick={() => removeRule(rule.id)}
+                            className="text-[#ccc] hover:text-red-500 transition-colors p-1"
+                            title="Rimuovi regola"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={addRule}
+                    disabled={newDomains.length === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-dashed border-[#d0d0d0] text-[12px] text-[#737373] hover:text-[#1a1a1a] hover:border-[#999] transition-colors disabled:opacity-40 disabled:cursor-not-allowed self-start"
+                  >
+                    <Plus size={12} />
+                    Aggiungi regola
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <Btn onClick={handleAnalyze} disabled={!canAnalyze || analyzing} loading={analyzing}>
+              Avvia analisi
+            </Btn>
           </div>
         )}
 
@@ -655,6 +659,7 @@ export default function MigrationPage() {
         {/* ── Step 3: Risultati ── */}
         {step === "results" && stats && (
           <div className="flex flex-col gap-6">
+
             {/* KPI cards */}
             <div className={`grid gap-4 ${stats.eliminated > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
               <Card className="p-4">
@@ -681,25 +686,7 @@ export default function MigrationPage() {
               </Card>
             </div>
 
-            {/* Riepilogo per lingua (solo multilingual) */}
-            {isMultilingual && (
-              <div className="flex flex-wrap gap-3 px-1">
-                {Object.entries(stats.by_language).map(([lang, ls]) => (
-                  <div key={lang} className="flex items-center gap-1.5 text-[12px] text-[#555]">
-                    <span className="font-semibold text-[10px] bg-[#f0f0ef] px-1.5 py-0.5 rounded tracking-wide">
-                      {lang.toUpperCase()}
-                    </span>
-                    {ls.eliminated != null && ls.eliminated > 0 ? (
-                      <span className="text-red-500">{ls.eliminated} eliminate</span>
-                    ) : (
-                      <span>{ls.matched}/{ls.total} matched</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Filtri + azioni */}
+            {/* Filtri principali + azioni */}
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {(
@@ -727,7 +714,12 @@ export default function MigrationPage() {
               <div className="flex items-center gap-2">
                 <Btn
                   variant="ghost"
-                  onClick={() => { setStep("config"); setResults([]); setStats(null); setLanguageFilter(null); }}
+                  onClick={() => {
+                    setStep("config");
+                    setResults([]);
+                    setStats(null);
+                    setDomainFilter(null);
+                  }}
                 >
                   Nuova analisi
                 </Btn>
@@ -738,35 +730,34 @@ export default function MigrationPage() {
               </div>
             </div>
 
-            {/* Filtro lingua (solo multilingual) */}
-            {isMultilingual && uniqueLanguages.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-[#aaa] mr-1">Lingua:</span>
+            {/* Filtro per dominio */}
+            {showDomainFilter && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] text-[#aaa] mr-1">Dominio:</span>
                 <button
-                  onClick={() => setLanguageFilter(null)}
+                  onClick={() => setDomainFilter(null)}
                   className={[
                     "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
-                    languageFilter === null
-                      ? "bg-[#1a1a1a] text-white"
-                      : "text-[#737373] hover:bg-[#f0f0ef]",
+                    domainFilter === null ? "bg-[#1a1a1a] text-white" : "text-[#737373] hover:bg-[#f0f0ef]",
                   ].join(" ")}
                 >
-                  Tutte
+                  Tutti
                 </button>
-                {uniqueLanguages.map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => setLanguageFilter(lang === languageFilter ? null : lang)}
-                    className={[
-                      "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
-                      languageFilter === lang
-                        ? "bg-[#1a1a1a] text-white"
-                        : "text-[#737373] hover:bg-[#f0f0ef]",
-                    ].join(" ")}
-                  >
-                    {lang.toUpperCase()}
-                  </button>
-                ))}
+                {uniqueTargetDomains.map((d) => {
+                  const label = results.find((r) => r.target_domain === d)?.target_label;
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setDomainFilter(d === domainFilter ? null : d)}
+                      className={[
+                        "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
+                        domainFilter === d ? "bg-[#1a1a1a] text-white" : "text-[#737373] hover:bg-[#f0f0ef]",
+                      ].join(" ")}
+                    >
+                      {label || extractHostname(d)}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -788,16 +779,13 @@ export default function MigrationPage() {
                   <thead>
                     <tr className="border-b border-[#e8e8e8] bg-[#fafafa]">
                       <th className="text-left px-3 py-3 font-medium text-[#737373]">URL vecchio</th>
-                      {isMultilingual && (
-                        <th className="text-left px-3 py-3 font-medium text-[#737373] w-[5%]">Lingua</th>
-                      )}
-                      <th className="text-left px-3 py-3 font-medium text-[#737373] w-[18%]">Title vecchio</th>
+                      <th className="text-left px-3 py-3 font-medium text-[#737373] w-[17%]">Title vecchio</th>
                       <th className="px-2 py-3 w-5"></th>
                       <th className="text-left px-3 py-3 font-medium text-[#737373]">URL nuovo</th>
-                      {isMultilingual && (
-                        <th className="text-left px-3 py-3 font-medium text-[#737373] w-[8%]">Dominio</th>
+                      {showDomainFilter && (
+                        <th className="text-left px-3 py-3 font-medium text-[#737373] w-[9%]">Dominio</th>
                       )}
-                      <th className="text-left px-3 py-3 font-medium text-[#737373] w-[18%]">Title nuovo</th>
+                      <th className="text-left px-3 py-3 font-medium text-[#737373] w-[17%]">Title nuovo</th>
                       <th className="text-left px-3 py-3 font-medium text-[#737373] w-[8%]">Confidenza</th>
                       <th className="text-left px-3 py-3 font-medium text-[#737373] w-[9%]">Tipo</th>
                       <th className="text-left px-3 py-3 font-medium text-[#737373]">Motivo</th>
@@ -809,11 +797,6 @@ export default function MigrationPage() {
                         <td className="px-3 py-3 font-mono text-[11px] text-[#1a1a1a] break-all max-w-[180px]">
                           {r.old_url}
                         </td>
-                        {isMultilingual && (
-                          <td className="px-3 py-3">
-                            <LangBadge code={r.language_code} matchType={r.match_type} />
-                          </td>
-                        )}
                         <td className="px-3 py-3 text-[#555] max-w-[160px] truncate">{r.old_title || "—"}</td>
                         <td className="px-2 py-3 text-center">
                           <ArrowRight size={12} className="text-[#d0d0d0]" />
@@ -821,18 +804,14 @@ export default function MigrationPage() {
                         <td className={`px-3 py-3 font-mono text-[11px] break-all max-w-[180px] ${r.new_url ? "text-[#1a1a1a]" : "text-[#c0c0c0]"}`}>
                           {r.new_url || "—"}
                         </td>
-                        {isMultilingual && (
-                          <td className="px-3 py-3 text-[11px] text-[#8f8f8f]">
-                            {extractHostname(r.new_domain)}
+                        {showDomainFilter && (
+                          <td className="px-3 py-3 text-[11px] text-[#8f8f8f] max-w-[100px] truncate">
+                            {r.target_label || extractHostname(r.target_domain)}
                           </td>
                         )}
                         <td className="px-3 py-3 text-[#555] max-w-[160px] truncate">{r.new_title || "—"}</td>
-                        <td className="px-3 py-3">
-                          <ConfidenceBadge confidence={r.confidence} />
-                        </td>
-                        <td className="px-3 py-3">
-                          <MatchTypeBadge type={r.match_type} />
-                        </td>
+                        <td className="px-3 py-3"><ConfidenceBadge confidence={r.confidence} /></td>
+                        <td className="px-3 py-3"><MatchTypeBadge type={r.match_type} /></td>
                         <td className="px-3 py-3 text-[#8f8f8f] text-[11px] max-w-[150px]">
                           {r.reason || ""}
                         </td>
@@ -841,7 +820,7 @@ export default function MigrationPage() {
                     {filteredResults.length === 0 && (
                       <tr>
                         <td
-                          colSpan={isMultilingual ? 10 : 8}
+                          colSpan={showDomainFilter ? 9 : 8}
                           className="px-4 py-8 text-center text-[#c0c0c0] text-[13px]"
                         >
                           Nessun risultato per il filtro selezionato.

@@ -93,42 +93,53 @@ I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clie
 ### 10. Tipi Migrazione
 
 ```typescript
+type NewDomain = {
+  id: string;        // crypto.randomUUID()
+  domain: string;    // es. "https://www.nuovo.it"
+  label: string;     // es. "Italia" (opzionale, solo display)
+  csv_file: File | null;
+};
+
+type LanguageRule = {
+  id: string;
+  pattern: string;                   // es. "/en/" o "vecchio.com"
+  pattern_type: "subdirectory" | "domain";
+  target_domain_id: string;          // id di un NewDomain
+  behavior: "redirect" | "eliminated" | "consolidated";
+  consolidated_target_domain_id?: string;
+};
+
 type MigrationResult = {
   old_url: string; old_title: string; old_h1: string; old_inlinks: number;
   new_url: string | null; new_title: string | null;
-  confidence: number; match_type: "exact" | "slug" | "gpt" | "no_match";
+  target_domain: string | null;   // dominio di destinazione
+  target_label: string | null;    // label opzionale del dominio
+  confidence: number;
+  match_type: "exact" | "slug" | "gpt" | "no_match" | "eliminated" | "consolidated";
   reason: string | null;
 };
 
 type MigrationStats = {
-  total: number; matched: number; no_match: number;
-  stats: { exact: number; slug: number; gpt: number; no_match: number };
-};
-```
-
-```typescript
-type LanguageMapping = {
-  language_code: string; label: string;
-  source_type: "subdirectory" | "domain"; source_value: string;
-  csv_file?: File;
-  destination_type: "subdirectory" | "domain" | "eliminated" | "consolidated";
-  destination_value: string; target_language_code?: string;
+  total: number; matched: number; no_match: number; eliminated: number;
+  stats: { exact: number; slug: number; gpt: number; no_match: number; eliminated: number; consolidated: number };
 };
 ```
 
 Pagina `app/migration/page.tsx`:
-- Toggle: "Migrazione semplice" / "Migrazione multilingua"
-- Step 1 "config" semplice: input domini + upload CSV (drag & drop)
-- Step 1 "config" multilingua: dominio vecchio + old CSV + N card lingua (add/remove dinamico)
-  - Ogni lingua: codice, label, struttura sorgente (subdirectory|domain), destinazione (subdirectory|domain|eliminated|consolidated)
-  - Destinazione "consolidated": Select per scegliere lingua target (tra le altre già configurate)
-  - Destinazione non eliminata/consolidated: upload CSV per quella lingua
+- Layout a due colonne (SITO VECCHIO | SITO NUOVO) in Step 1 "config"
+- SITO VECCHIO: input dominio + upload CSV unico (drag & drop)
+- SITO NUOVO: N card `NewDomain` (add/remove dinamico) — ognuna con dominio, label opzionale, upload CSV
+- Accordion collassabile "Regole di instradamento" con N card `LanguageRule` (pattern, tipo, dominio target, comportamento)
+  - `behavior=eliminated`: nessun redirect, match_type="eliminated"
+  - `behavior=consolidated`: Select per dominio target di consolidamento
 - Step 2 "loading": progress steps animati durante analisi
-- Step 3 "results": KPI card (+ card "Eliminate" se > 0) + riepilogo per-lingua (multilingual) + filtri + tabella + export CSV
-- Tabella: colonne "Lingua" e "Dominio" aggiuntive in modalità multilingual
-- Filtro lingua dinamico (Tutte | IT | EN | DE | ...) sopra la tabella in modalità multilingual
-- Badge `MatchTypeBadge` estesi: "eliminated" (rosso scuro), "consolidated" (arancione)
+- Step 3 "results": KPI card + filtro dominio (se più domini) + tabella + export CSV
+  - Colonna "Dominio" visibile solo se `uniqueTargetDomains.length > 1`
+  - Filtro dominio dinamico sopra la tabella
+- Badge `MatchTypeBadge`: "eliminated" (rosso scuro), "consolidated" (arancione)
 - Usa `apiFetch` con `body: FormData` e `config` JSON per `/api/migration/analyze`
+- Config inviato: `{ old_domain, new_domains: [{id, domain, label}], language_rules: [{pattern, pattern_type, target_domain_id, behavior, ...}] }`
+- File: `old_csv` + `new_csv_{domain_id}` per ogni NewDomain
 - Export via `POST /api/migration/export-csv` — download blob CSV
 
 ### 7. Tipo KW — campi completi
