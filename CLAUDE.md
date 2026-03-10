@@ -18,6 +18,7 @@ app/
   login/              → unica pagina SENZA AppShell (nessun guard auth)
   dashboard/          → vista cross-cliente: KPI globali + card per cliente con trend keyword crescita/calo
   clients/            → lista clienti (form nuovo cliente con gsc_property)
+  calendar/           → calendario editoriale: keyword pianificate per mese (vista mensile + lista)
   clients/[id]/       → pagina principale con due tab:
                           "Keyword" — keyword management, GSC sync, briefs
                           "Monitoraggio" — tabella GSC con delta posizione, KPI card, filtri rapidi
@@ -190,6 +191,30 @@ type VisibilitySnapshot = {
   recorded_at: string; avg_position: number; total_clicks: number; total_impressions: number;
 };
 ```
+
+### 15. Calendario editoriale (app/calendar/page.tsx)
+
+```typescript
+type CalendarKeyword = {
+  id: string; keyword: string; status: string; planned_month: string; client_id: string;
+  cluster?: string; intent?: string; priority?: string;
+  clients: { id: string; name: string };  // join Supabase
+};
+```
+
+- Fetch `GET /api/clients/calendar` al mount via `apiFetch`
+- Due viste: "Mensile" (default) e "Lista" — toggle in header
+- Vista mensile:
+  - Navigazione mese con `ChevronLeft`/`ChevronRight`
+  - Sezione "N keyword pianificate" con `KeywordPill` raggruppati per cliente
+  - Griglia 7 colonne (Lun→Dom) con i giorni del mese corrente
+  - 6 `MonthDropZone` (mese corrente + 5 successivi) per drag & drop
+- Vista lista: tabella keyword ordinate per `planned_month` asc, poi cliente; raggruppate per mese con separatore visivo
+- `KeywordPill`: `draggable`, colore da `STATUS_CFG`, link a `/clients/{id}`
+- `MonthDropZone`: drop target HTML5 nativo — nessuna libreria esterna
+- `handleDrop`: aggiornamento ottimistico + `PATCH /api/clients/{client_id}/keywords/{id}` con `{ planned_month: "YYYY-MM" }`
+- `STATUS_CFG` replicato localmente (stessi valori di `clients/[id]/page.tsx`)
+- Sidebar: voce "Calendario" con icona `Calendar` — seconda voce dopo "Dashboard"
 
 ### 14. Campo URL pubblicato nel pannello KeywordRow
 - Input `type="url"` con `onBlur` → chiama `onUpdate({ published_url: val ?? "" })`

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Users, BarChart2, PenLine, Settings, LogOut, ArrowLeftRight, LayoutDashboard } from "lucide-react";
+import { Users, BarChart2, PenLine, Settings, LogOut, ArrowLeftRight, LayoutDashboard, Calendar } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/calendar",  label: "Calendario",  icon: Calendar        },
   { href: "/clients",   label: "Clienti",     icon: Users           },
   { href: "/seo",       label: "Analisi SEO", icon: BarChart2       },
   { href: "/migration", label: "Migrazione",  icon: ArrowLeftRight  },
