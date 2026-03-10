@@ -180,7 +180,7 @@ export default function ClientPage() {
     } finally { setAddingKw(false); }
   }
 
-  async function updateKeyword(kwId: string, fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority">>) {
+  async function updateKeyword(kwId: string, fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume">>) {
     await apiFetch(`/api/clients/${clientId}/keywords/${kwId}`, {
       method: "PATCH",
       body: JSON.stringify(fields),
@@ -1055,7 +1055,7 @@ function FilterTab({ active, onClick, children }: {
 function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
   kw: KW;
   clientId: string;
-  onUpdate: (fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority">>) => void;
+  onUpdate: (fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume">>) => void;
   onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -1209,6 +1209,27 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
             </select>
           </div>
 
+          {/* Volume mensile */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-[#ababab] font-medium uppercase tracking-wide">
+              Volume mensile
+            </span>
+            <input
+              type="number"
+              min={0}
+              className="text-[12px] text-[#333] border border-[#e0e0e0] rounded-md px-2 py-1 bg-white focus:outline-none focus:border-[#999] w-32"
+              placeholder="es. 1000"
+              defaultValue={kw.search_volume ?? ""}
+              onBlur={(e) => {
+                const val = parseInt(e.target.value, 10);
+                const newVal = isNaN(val) || val <= 0 ? null : val;
+                if (newVal !== (kw.search_volume ?? null)) {
+                  onUpdate({ search_volume: newVal ?? undefined });
+                }
+              }}
+            />
+          </div>
+
           {/* GSC full metrics */}
           {hasGsc && (
             <div className="flex flex-col gap-1">
@@ -1218,16 +1239,6 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
                 <span>{kw.clicks?.toLocaleString("it-IT")} click</span>
                 <span>pos. {kw.position?.toFixed(1)}</span>
                 <span>CTR {((kw.ctr ?? 0) * 100).toFixed(1)}%</span>
-              </div>
-            </div>
-          )}
-
-          {/* Search volume */}
-          {kw.search_volume != null && (
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-[#ababab] font-medium uppercase tracking-wide">Volume</span>
-              <div className="text-[12px] text-[#555]">
-                {kw.search_volume.toLocaleString("it-IT")} vol/mese
               </div>
             </div>
           )}
