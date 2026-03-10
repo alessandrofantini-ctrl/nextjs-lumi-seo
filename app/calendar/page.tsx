@@ -134,7 +134,8 @@ export default function CalendarPage() {
 
   useEffect(() => {
     apiFetch("/api/clients/calendar")
-      .then((data) => setKeywords(data as CalendarKeyword[]))
+      .then((r) => r.json())
+      .then((data) => setKeywords(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
   }, []);
 
