@@ -234,11 +234,11 @@ export default function ClientPage() {
 
   function downloadTemplate() {
     const rows = [
-      ["keyword", "cluster", "intent", "priority"],
-      ["esempio keyword 1", "Guide prodotto",   "informativo",   "alta"],
-      ["esempio keyword 2", "Schede prodotto",  "commerciale",   "media"],
-      ["esempio keyword 3", "Brand",            "navigazionale", "bassa"],
-      ["esempio keyword 4", "Prezzi",           "transazionale", "alta"],
+      ["keyword", "cluster", "intent", "priority", "volume"],
+      ["esempio keyword 1", "Guide prodotto",   "informativo",   "alta",  "1000"],
+      ["esempio keyword 2", "Schede prodotto",  "commerciale",   "media", "500"],
+      ["esempio keyword 3", "Brand",            "navigazionale", "bassa", "200"],
+      ["esempio keyword 4", "Prezzi",           "transazionale", "alta",  "2000"],
     ];
     const csv = rows.map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -268,12 +268,13 @@ export default function ClientPage() {
       const hasHeader = HEADER_KEYWORDS.includes(firstCells[0]);
 
       // Mappa colonne dall'intestazione (se presente)
-      const colIndex = { keyword: 0, cluster: -1, intent: -1, priority: -1 };
+      const colIndex = { keyword: 0, cluster: -1, intent: -1, priority: -1, volume: -1 };
       if (hasHeader) {
         firstCells.forEach((col, i) => {
           if (col === "cluster")  colIndex.cluster  = i;
           if (col === "intent")   colIndex.intent   = i;
           if (col === "priority") colIndex.priority = i;
+          if (col === "volume" || col === "search_volume" || col === "vol") colIndex.volume = i;
         });
       }
 
@@ -290,6 +291,7 @@ export default function ClientPage() {
             cluster:  colIndex.cluster  >= 0 ? (cells[colIndex.cluster]  || "") : "",
             intent:   colIndex.intent   >= 0 ? (cells[colIndex.intent]   || "") : "",
             priority: colIndex.priority >= 0 ? (cells[colIndex.priority] || "") : "",
+            volume:   colIndex.volume   >= 0 ? (parseInt(cells[colIndex.volume] || "0", 10) || null) : null,
           };
         })
         .filter(Boolean);
@@ -585,7 +587,7 @@ export default function ClientPage() {
                 <p className="text-[11px] text-[#c0c0c0] mt-1.5">
                   Il CSV deve avere una keyword per riga. Colonne supportate:
                   <strong className="text-[#ababab]"> keyword</strong> (obbligatoria),
-                  cluster, intent, priority.
+                  cluster, intent, priority, volume.
                   Valori validi per intent: informativo, commerciale, navigazionale, transazionale.
                   Per priority: alta, media, bassa.{" "}
                   <button
