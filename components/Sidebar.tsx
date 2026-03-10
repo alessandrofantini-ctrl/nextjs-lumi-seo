@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Users, BarChart2, PenLine, Settings, LogOut, ArrowLeftRight } from "lucide-react";
+import { Users, BarChart2, PenLine, Settings, LogOut, ArrowLeftRight, LayoutDashboard } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 const NAV = [
-  { href: "/clients",   label: "Clienti",     icon: Users          },
-  { href: "/seo",       label: "Analisi SEO", icon: BarChart2      },
-  { href: "/migration", label: "Migrazione",  icon: ArrowLeftRight },
-  { href: "/writer",    label: "Redattore",   icon: PenLine        },
+  { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/clients",   label: "Clienti",     icon: Users           },
+  { href: "/seo",       label: "Analisi SEO", icon: BarChart2       },
+  { href: "/migration", label: "Migrazione",  icon: ArrowLeftRight  },
+  { href: "/writer",    label: "Redattore",   icon: PenLine         },
 ];
 
 export default function Sidebar() {
