@@ -16,6 +16,7 @@ Utente primario: HEAD of SEO (Alessandro). Non è un SaaS pubblico.
 ```
 app/
   login/              → unica pagina SENZA AppShell (nessun guard auth)
+  dashboard/          → vista cross-cliente: KPI globali + card per cliente con trend keyword crescita/calo
   clients/            → lista clienti (form nuovo cliente con gsc_property)
   clients/[id]/       → pagina principale con due tab:
                           "Keyword" — keyword management, GSC sync, briefs
@@ -89,6 +90,31 @@ I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clie
 - Colonna "Volume": `search_volume` scritto automaticamente dal backend via DataForSEO al salvataggio keyword.
 - Ordinamento `filteredMonKw`: keyword con position asc → keyword senza position ordinate per `search_volume` desc → alfabetico.
 - Empty state Monitoraggio: visibile solo se `keyword_history.length === 0`.
+
+### 11. Tipo Dashboard
+
+```typescript
+type DashboardClient = {
+  id: string;
+  name: string;
+  sector?: string;
+  total_keywords: number;
+  keywords_crescita: number;  // keyword con position < position_prev
+  keywords_calo: number;      // keyword con position > position_prev
+  last_sync: string | null;   // ISO timestamp più recente tra i gsc_updated_at
+};
+```
+
+Pagina `app/dashboard/page.tsx`:
+- Fetch `GET /api/dashboard` al mount via `apiFetch`
+- 3 KPI card globali: Progetti attivi, Keyword in crescita (verde), Keyword in calo (rosso)
+- Griglia card clienti `grid-cols-3` desktop / `grid-cols-1` mobile — cliccabili → `/clients/{id}`
+- `TrendPill`: pill verde (↑ crescita) o rosso (↓ calo); hidden se value === 0
+- `SyncBadge`: testo colorato — verde ≤7gg, grigio ≤14gg, arancione >14gg
+- Skeleton loader (`animate-pulse`) con 6 card durante loading
+- Empty state se array vuoto
+- Componenti `TrendPill`, `SyncBadge`, `SkeletonGrid` definiti in fondo alla pagina (non file separati)
+- Sidebar: voce "Dashboard" con icona `LayoutDashboard` — prima voce del menu
 
 ### 10. Tipi Migrazione
 
