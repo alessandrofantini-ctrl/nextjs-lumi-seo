@@ -198,6 +198,29 @@ type VisibilitySnapshot = {
   - Grafico aggregato (avg_position asse sx, total_clicks asse dx) + tabella confronto Oggi/-30/-60/-90gg
 - recharts: importato da `"recharts"` — già disponibile nel progetto, nessuna installazione extra
 
+### 13. Import CSV keyword — formato e parser (app/clients/[id]/page.tsx)
+
+Formato CSV supportato:
+- Prima colonna obbligatoria: `keyword` (o `query`, `parola chiave`, `kw`)
+- Colonne opzionali: `cluster`, `intent`, `priority`
+- Intestazione auto-rilevata: se `firstCells[0]` è in `HEADER_KEYWORDS` → `hasHeader = true`
+- Senza intestazione: tutte le righe trattate come keyword (solo colonna 0)
+
+`colIndex` mappa le colonne dall'intestazione (`-1` = assente):
+```typescript
+const colIndex = { keyword: 0, cluster: -1, intent: -1, priority: -1 };
+```
+
+Ogni riga produce `{ keyword, cluster, intent, priority }` — stringhe vuote se colonna assente.
+Il backend valida i valori di `intent` e `priority` e ignora quelli non validi.
+
+Funzione `downloadTemplate()`: genera e scarica `template_keyword.csv` con 4 righe di esempio
+(una per ogni valore di intent) — nessuna chiamata API.
+
+Bottone "Scarica template": testo underline accanto a "Importa CSV".
+Hint formato: paragrafo `text-[11px] text-[#c0c0c0]` sempre visibile sotto la toolbar,
+con link inline "Scarica il template di esempio".
+
 ### 12. Bottone "Aggiorna volumi" (app/clients/[id]/page.tsx)
 
 Stato aggiunto:

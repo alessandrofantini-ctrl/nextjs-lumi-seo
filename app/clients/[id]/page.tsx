@@ -232,6 +232,24 @@ export default function ClientPage() {
     } finally { setRefreshingVolumes(false); }
   }
 
+  function downloadTemplate() {
+    const rows = [
+      ["keyword", "cluster", "intent", "priority"],
+      ["esempio keyword 1", "Guide prodotto",   "informativo",   "alta"],
+      ["esempio keyword 2", "Schede prodotto",  "commerciale",   "media"],
+      ["esempio keyword 3", "Brand",            "navigazionale", "bassa"],
+      ["esempio keyword 4", "Prezzi",           "transazionale", "alta"],
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "template_keyword.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -239,10 +257,43 @@ export default function ClientPage() {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const text = ev.target?.result as string;
-      const lines = text.split(/\r?\n/).map((l) => l.split(",")[0].replace(/^["']|["']$/g, "").trim()).filter(Boolean);
-      const firstLow = lines[0]?.toLowerCase();
-      const keywords = ["keyword", "query", "parola chiave", "kw"].includes(firstLow)
-        ? lines.slice(1) : lines;
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (!lines.length) { setImporting(false); return; }
+
+      // Rileva intestazione
+      const HEADER_KEYWORDS = ["keyword", "query", "parola chiave", "kw"];
+      const firstCells = lines[0].split(",").map((c) =>
+        c.replace(/^["']|["']$/g, "").trim().toLowerCase()
+      );
+      const hasHeader = HEADER_KEYWORDS.includes(firstCells[0]);
+
+      // Mappa colonne dall'intestazione (se presente)
+      const colIndex = { keyword: 0, cluster: -1, intent: -1, priority: -1 };
+      if (hasHeader) {
+        firstCells.forEach((col, i) => {
+          if (col === "cluster")  colIndex.cluster  = i;
+          if (col === "intent")   colIndex.intent   = i;
+          if (col === "priority") colIndex.priority = i;
+        });
+      }
+
+      const dataLines = hasHeader ? lines.slice(1) : lines;
+      const keywords = dataLines
+        .map((line) => {
+          const cells = line.split(",").map((c) =>
+            c.replace(/^["']|["']$/g, "").trim()
+          );
+          const kw = cells[colIndex.keyword]?.trim();
+          if (!kw) return null;
+          return {
+            keyword:  kw,
+            cluster:  colIndex.cluster  >= 0 ? (cells[colIndex.cluster]  || "") : "",
+            intent:   colIndex.intent   >= 0 ? (cells[colIndex.intent]   || "") : "",
+            priority: colIndex.priority >= 0 ? (cells[colIndex.priority] || "") : "",
+          };
+        })
+        .filter(Boolean);
+
       if (!keywords.length) { setImporting(false); return; }
       try {
         const r = await apiFetch(`/api/clients/${clientId}/keywords/bulk`, {
@@ -517,6 +568,12 @@ export default function ClientPage() {
                       {importing ? "Importazione…" : "Importa CSV"}
                     </button>
                     <button
+                      onClick={downloadTemplate}
+                      className="text-[11px] text-[#737373] hover:text-[#1a1a1a] transition-colors underline underline-offset-2"
+                    >
+                      Scarica template
+                    </button>
+                    <button
                       onClick={refreshVolumes}
                       disabled={refreshingVolumes}
                       className="text-[11px] text-[#737373] hover:text-[#1a1a1a] border border-[#e0e0e0] hover:border-[#ccc] rounded-md px-2.5 py-1 transition-colors disabled:opacity-50"
@@ -525,6 +582,19 @@ export default function ClientPage() {
                     </button>
                   </div>
                 </div>
+                <p className="text-[11px] text-[#c0c0c0] mt-1.5">
+                  Il CSV deve avere una keyword per riga. Colonne supportate:
+                  <strong className="text-[#ababab]"> keyword</strong> (obbligatoria),
+                  cluster, intent, priority.
+                  Valori validi per intent: informativo, commerciale, navigazionale, transazionale.
+                  Per priority: alta, media, bassa.{" "}
+                  <button
+                    onClick={downloadTemplate}
+                    className="underline underline-offset-2 hover:text-[#999] transition-colors"
+                  >
+                    Scarica il template di esempio
+                  </button>
+                </p>
 
                 {volumeRefreshResult && (
                   <div className="mb-3">
