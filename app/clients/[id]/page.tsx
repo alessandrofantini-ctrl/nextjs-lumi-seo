@@ -114,6 +114,14 @@ export default function ClientPage() {
   const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Volume refresh
+  const [refreshingVolumes, setRefreshingVolumes] = useState(false);
+  const [volumeRefreshResult, setVolumeRefreshResult] = useState<{
+    skipped: boolean;
+    next_refresh?: string;
+    updated?: number;
+  } | null>(null);
+
   async function load() {
     setLoading(true); setError(null);
     try {
@@ -206,6 +214,22 @@ export default function ClientPage() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Errore sincronizzazione GSC");
     } finally { setGscSyncing(false); }
+  }
+
+  async function refreshVolumes() {
+    setRefreshingVolumes(true);
+    setVolumeRefreshResult(null);
+    try {
+      const r = await apiFetch(
+        `/api/clients/${clientId}/keywords/refresh-volumes`,
+        { method: "POST" }
+      );
+      const data = await r.json();
+      setVolumeRefreshResult(data);
+      if (!data.skipped) await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Errore aggiornamento volumi");
+    } finally { setRefreshingVolumes(false); }
   }
 
   function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -492,8 +516,26 @@ export default function ClientPage() {
                     >
                       {importing ? "Importazione…" : "Importa CSV"}
                     </button>
+                    <button
+                      onClick={refreshVolumes}
+                      disabled={refreshingVolumes}
+                      className="text-[11px] text-[#737373] hover:text-[#1a1a1a] border border-[#e0e0e0] hover:border-[#ccc] rounded-md px-2.5 py-1 transition-colors disabled:opacity-50"
+                    >
+                      {refreshingVolumes ? "Aggiornamento…" : "Aggiorna volumi"}
+                    </button>
                   </div>
                 </div>
+
+                {volumeRefreshResult && (
+                  <div className="mb-3">
+                    <Alert type={volumeRefreshResult.skipped ? "warn" : "info"}>
+                      {volumeRefreshResult.skipped
+                        ? `Volumi già aggiornati — prossimo aggiornamento disponibile il ${new Date(volumeRefreshResult.next_refresh!).toLocaleDateString("it-IT")}`
+                        : `Volumi aggiornati per ${volumeRefreshResult.updated} keyword`
+                      }
+                    </Alert>
+                  </div>
+                )}
 
                 {importResult && (
                   <div className="mb-3">
