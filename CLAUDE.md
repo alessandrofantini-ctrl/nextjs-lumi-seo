@@ -87,7 +87,7 @@ I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clie
 - `position_prev` è null finché non avviene un secondo sync GSC — in quel caso il badge mostra "—".
 - KPI e filtro "Opportunità": `impressions > 100 AND position > 10 AND status === 'backlog'`.
 - Colonna "Cannibalizzazione" ancora presente in tabella (usa `cannibSet` da `detectCannibalization`).
-- Colonna "Volume": `search_volume` scritto automaticamente dal backend via DataForSEO al salvataggio keyword.
+- Colonna "Volume": `search_volume` popolato tramite bottone "Aggiorna volumi" (bulk manuale) o import CSV; NON più aggiornato automaticamente al salvataggio keyword singola.
 - Ordinamento `filteredMonKw`: keyword con position asc → keyword senza position ordinate per `search_volume` desc → alfabetico.
 - Empty state Monitoraggio: visibile solo se `keyword_history.length === 0`.
 
@@ -197,6 +197,24 @@ type VisibilitySnapshot = {
   - Sezione "Andamento progetto" visibile solo se `visibilityHistory.length >= 2`
   - Grafico aggregato (avg_position asse sx, total_clicks asse dx) + tabella confronto Oggi/-30/-60/-90gg
 - recharts: importato da `"recharts"` — già disponibile nel progetto, nessuna installazione extra
+
+### 12. Bottone "Aggiorna volumi" (app/clients/[id]/page.tsx)
+
+Stato aggiunto:
+```typescript
+const [refreshingVolumes, setRefreshingVolumes] = useState(false);
+const [volumeRefreshResult, setVolumeRefreshResult] = useState<{
+  skipped: boolean;
+  next_refresh?: string;
+  updated?: number;
+} | null>(null);
+```
+
+- Bottone nella toolbar della tab Keyword, accanto a "Importa CSV"
+- Chiama `POST /api/clients/{id}/keywords/refresh-volumes` via `apiFetch`
+- Se `data.skipped === true`: Alert warn con data prossimo aggiornamento
+- Se `data.skipped === false`: Alert info con N keyword aggiornate + `load()` per ricaricare
+- Throttle 30 giorni gestito lato backend su `clients.volume_refreshed_at`
 
 ### 8. Form cliente — campi DataForSEO
 `language_code` (string, default "it") e `location_code` (number, default 2380) presenti in:
