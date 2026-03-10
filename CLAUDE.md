@@ -176,6 +176,10 @@ type KW = {
   position_prev?, position_updated_at?       // GSC sync historicization
   cluster?, intent?, priority?
   search_volume?, volume_updated_at?         // DataForSEO (migration 005)
+  published_url?                             // URL pagina pubblicata (migration 008)
+  page_position?, page_clicks?,             // rendimento GSC della pagina come URL
+  page_impressions?, page_ctr?,             //   (distinto dai campi query-level sopra)
+  page_updated_at?                          //   aggiornato dal gsc-sync
 }
 
 type PositionSnapshot = {
@@ -186,6 +190,15 @@ type VisibilitySnapshot = {
   recorded_at: string; avg_position: number; total_clicks: number; total_impressions: number;
 };
 ```
+
+### 14. Campo URL pubblicato nel pannello KeywordRow
+- Input `type="url"` con `onBlur` → chiama `onUpdate({ published_url: val ?? "" })`
+- Salva stringa vuota per cancellare (il backend tratta "" come null)
+- Link cliccabile `target="_blank"` mostrato sotto l'input se `published_url` è configurato
+- Sezione "Rendimento pagina (GSC)" mostra `page_position/clicks/impressions/ctr/page_updated_at`
+  se `published_url` è configurato — placeholder se `page_position == null`
+- Indicatore 🔗 nella riga principale (non expanded) se `published_url` è configurato
+- `onUpdate` e `updateKeyword`: `published_url` incluso nel Pick<KW, ...>
 
 ### 9. Storico posizioni — pattern fetch lazy
 - `KeywordRow`: al primo expand chiama `GET /api/clients/{id}/keywords/{kw_id}/history`

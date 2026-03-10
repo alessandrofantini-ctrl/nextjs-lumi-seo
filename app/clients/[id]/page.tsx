@@ -48,6 +48,9 @@ type KW = {
   gsc_updated_at?: string; position_prev?: number; position_updated_at?: string;
   cluster?: string; intent?: string; priority?: string;
   search_volume?: number; volume_updated_at?: string;
+  published_url?: string;
+  page_position?: number; page_clicks?: number; page_impressions?: number;
+  page_ctr?: number; page_updated_at?: string;
 };
 type Brief = { id: string; keyword: string; market: string; intent: string; created_at: string };
 
@@ -180,7 +183,7 @@ export default function ClientPage() {
     } finally { setAddingKw(false); }
   }
 
-  async function updateKeyword(kwId: string, fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume">>) {
+  async function updateKeyword(kwId: string, fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume" | "published_url">>) {
     await apiFetch(`/api/clients/${clientId}/keywords/${kwId}`, {
       method: "PATCH",
       body: JSON.stringify(fields),
@@ -1055,7 +1058,7 @@ function FilterTab({ active, onClick, children }: {
 function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
   kw: KW;
   clientId: string;
-  onUpdate: (fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume">>) => void;
+  onUpdate: (fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume" | "published_url">>) => void;
   onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -1123,6 +1126,16 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
 
         {/* Keyword text */}
         <span className="flex-1 text-[13px] text-[#333] truncate">{kw.keyword}</span>
+
+        {/* Published URL indicator */}
+        {kw.published_url && (
+          <span
+            title={kw.published_url}
+            className="text-[10px] text-[#2563eb] bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 shrink-0"
+          >
+            🔗
+          </span>
+        )}
 
         {/* Cluster tag */}
         {kw.cluster && (
@@ -1229,6 +1242,61 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
               }}
             />
           </div>
+
+          {/* URL Pubblicato */}
+          <div className="flex flex-col gap-1 col-span-2">
+            <span className="text-[10px] text-[#ababab] font-medium uppercase tracking-wide">
+              URL pubblicato
+            </span>
+            <input
+              type="url"
+              className="text-[12px] text-[#333] border border-[#e0e0e0] rounded-md px-2 py-1 bg-white focus:outline-none focus:border-[#999] w-full"
+              placeholder="https://www.esempio.it/articolo-seo"
+              defaultValue={kw.published_url ?? ""}
+              onBlur={(e) => {
+                const val = e.target.value.trim() || undefined;
+                if (val !== (kw.published_url ?? undefined)) {
+                  onUpdate({ published_url: val ?? "" });
+                }
+              }}
+            />
+            {kw.published_url && (
+              <a
+                href={kw.published_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] text-[#2563eb] hover:underline truncate"
+              >
+                {kw.published_url}
+              </a>
+            )}
+          </div>
+
+          {/* Rendimento pagina (GSC) */}
+          {kw.published_url && (
+            <div className="flex flex-col gap-1 col-span-2">
+              <span className="text-[10px] text-[#ababab] font-medium uppercase tracking-wide">
+                Rendimento pagina (GSC)
+              </span>
+              {kw.page_position == null ? (
+                <p className="text-[11px] text-[#c0c0c0]">
+                  Dati non ancora disponibili — verranno aggiornati al prossimo sync GSC.
+                </p>
+              ) : (
+                <div className="flex gap-4 text-[12px] text-[#555]">
+                  <span title="Posizione media pagina">pos. {kw.page_position.toFixed(1)}</span>
+                  <span title="Click alla pagina">{kw.page_clicks?.toLocaleString("it-IT")} click</span>
+                  <span title="Impressioni pagina">{kw.page_impressions?.toLocaleString("it-IT")} imp</span>
+                  <span title="CTR pagina">CTR {((kw.page_ctr ?? 0) * 100).toFixed(1)}%</span>
+                  {kw.page_updated_at && (
+                    <span className="text-[#c0c0c0]">
+                      · agg. {new Date(kw.page_updated_at).toLocaleDateString("it-IT")}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* GSC full metrics */}
           {hasGsc && (
