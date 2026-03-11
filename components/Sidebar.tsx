@@ -2,16 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Users, BarChart2, PenLine, Settings, LogOut, ArrowLeftRight, LayoutDashboard, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Users, BarChart2, PenLine, Settings, LogOut,
+  ArrowLeftRight, LayoutDashboard, Calendar,
+} from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard",   icon: LayoutDashboard },
-  { href: "/calendar",  label: "Calendario",  icon: Calendar        },
   { href: "/clients",   label: "Clienti",     icon: Users           },
+  { href: "/calendar",  label: "Calendario",  icon: Calendar        },
   { href: "/seo",       label: "Analisi SEO", icon: BarChart2       },
-  { href: "/migration", label: "Migrazione",  icon: ArrowLeftRight  },
   { href: "/writer",    label: "Redattore",   icon: PenLine         },
+  { href: "/migration", label: "Migrazione",  icon: ArrowLeftRight  },
 ];
 
 export default function Sidebar() {
@@ -28,17 +32,8 @@ export default function Sidebar() {
   return (
     <aside className="w-52 shrink-0 flex flex-col bg-white border-r border-[#e8e8e8] h-full">
 
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-[#e8e8e8]">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-[#1a1a1a] flex items-center justify-center">
-            <span className="text-[11px] font-bold text-white">L</span>
-          </div>
-          <span className="text-sm font-semibold text-[#1a1a1a] tracking-tight">
-            Lumi SEO Suite
-          </span>
-        </div>
-      </div>
+      {/* User avatar */}
+      <UserAvatar />
 
       {/* Nav */}
       <nav className="flex-1 p-2 flex flex-col gap-0.5">
@@ -61,6 +56,9 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Active client */}
+      <ActiveClient />
 
       {/* Bottom */}
       <div className="p-2 border-t border-[#e8e8e8] flex flex-col gap-0.5">
@@ -85,5 +83,65 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+function UserAvatar() {
+  const [initials, setInitials] = useState("?");
+  useEffect(() => {
+    async function load() {
+      const { createClient } = await import("@/utils/supabase/client");
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const name = user.user_metadata?.full_name
+        || user.user_metadata?.name
+        || user.email
+        || "";
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        setInitials((parts[0][0] + parts[1][0]).toUpperCase());
+      } else if (parts[0]) {
+        setInitials(parts[0].substring(0, 2).toUpperCase());
+      }
+    }
+    load();
+  }, []);
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-4 border-b border-[#e8e8e8] mb-2">
+      <div className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0">
+        <span className="text-[10px] font-semibold text-white">{initials}</span>
+      </div>
+      <span className="text-[12px] font-medium text-[#333] truncate">
+        Lumi SEO Suite
+      </span>
+    </div>
+  );
+}
+
+function ActiveClient() {
+  const pathname = usePathname();
+  const [clientName, setClientName] = useState<string | null>(null);
+  useEffect(() => {
+    const match = pathname.match(/^\/clients\/([^/]+)/);
+    if (!match) { setClientName(null); return; }
+    const clientId = match[1];
+    import("@/lib/api").then(({ apiFetch }) => {
+      apiFetch(`/api/clients/${clientId}`)
+        .then((r) => r.json())
+        .then((data) => setClientName(data.name || null))
+        .catch(() => setClientName(null));
+    });
+  }, [pathname]);
+  if (!clientName) return null;
+  return (
+    <div className="mx-3 mb-3 px-3 py-2.5 rounded-lg bg-[#f7f7f6] border border-[#e8e8e8]">
+      <p className="text-[9px] font-medium text-[#ababab] uppercase tracking-wide mb-0.5">
+        Progetto attivo
+      </p>
+      <p className="text-[12px] font-semibold text-[#1a1a1a] truncate">
+        {clientName}
+      </p>
+    </div>
   );
 }

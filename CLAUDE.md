@@ -15,6 +15,7 @@ Utente primario: HEAD of SEO (Alessandro). Non è un SaaS pubblico.
 
 ```
 app/
+  page.tsx            → homepage (tool card 01–06, workflow consigliato)
   login/              → unica pagina SENZA AppShell (nessun guard auth)
   dashboard/          → vista cross-cliente: KPI globali + card per cliente con trend keyword crescita/calo
   clients/            → lista clienti (form nuovo cliente con gsc_property)
@@ -28,6 +29,7 @@ app/
   impostazioni/       → gestione API keys (OpenAI, SerpAPI) + logout
 components/
   AppShell.tsx        → layout con Sidebar + guard auth (wrappa TUTTE le pagine tranne /login)
+  Sidebar.tsx         → sidebar navigazione con UserAvatar, nav ordinata, ActiveClient, Settings/Esci
   ui.tsx              → design system interno: PageHeader, Card, Input, Btn, Alert, Badge, ecc.
 lib/
   api.ts              → wrapper apiFetch — usa SEMPRE questo per chiamate al backend
@@ -36,6 +38,30 @@ utils/supabase/
   server.ts           → Supabase client lato SSR
 middleware.ts         → redirect a /login se sessione assente
 ```
+
+### Homepage (app/page.tsx)
+- 6 `ToolCard` con numero, titolo, descrizione, href e icona lucide
+- Ordine: Dashboard, Clienti, Calendario, Analisi SEO, Redattore, Migrazione
+- Componente `ToolCard` definito in fondo alla pagina (non file separato)
+- Icone da `ICONS = { LayoutDashboard, Users, Calendar, BarChart2, PenLine, ArrowLeftRight }`
+- Layout: header bianco + scrollable area `bg-[#f7f7f6]`, `max-w-2xl`
+
+### Sidebar (components/Sidebar.tsx)
+Ordine nav esatto:
+1. Dashboard → /dashboard — `LayoutDashboard`
+2. Clienti → /clients — `Users`
+3. Calendario → /calendar — `Calendar`
+4. Analisi SEO → /seo — `BarChart2`
+5. Redattore → /writer — `PenLine`
+6. Migrazione → /migration — `ArrowLeftRight`
+
+In fondo (separati da border-t):
+- Impostazioni → /impostazioni — `Settings`
+- Esci — `LogOut`
+
+Componenti definiti in fondo a `Sidebar.tsx`:
+- `UserAvatar`: avatar initials utente Supabase + "Lumi SEO Suite" — in cima, sopra nav
+- `ActiveClient`: fetch nome cliente da `/api/clients/{id}` se pathname `/clients/[id]` — sopra il divider Settings/Esci; fire-and-forget, nessun loading state visibile
 
 ## Pattern critici — NON bypassare
 

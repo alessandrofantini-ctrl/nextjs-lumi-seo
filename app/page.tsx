@@ -1,79 +1,104 @@
 import Link from "next/link";
-import { Users, BarChart2, PenLine } from "lucide-react";
+import {
+  LayoutDashboard, Users, Calendar,
+  BarChart2, PenLine, ArrowLeftRight,
+} from "lucide-react";
 
-const TOOLS = [
-  {
-    href: "/clients",
-    icon: Users,
-    step: "01",
-    title: "Gestione clienti",
-    desc: "Crea i profili clienti con prodotti, USP e tono di voce. Vengono caricati automaticamente negli altri strumenti.",
-  },
-  {
-    href: "/seo",
-    icon: BarChart2,
-    step: "02",
-    title: "Analisi & Strategia SEO",
-    desc: "Analizza le keyword, studia i competitor in SERP e genera il brief editoriale con GPT-4o.",
-  },
-  {
-    href: "/writer",
-    icon: PenLine,
-    step: "03",
-    title: "Redattore articoli AI",
-    desc: "Trasforma il brief in un articolo completo, formattato in Markdown e pronto per la pubblicazione.",
-  },
-];
+const ICONS = {
+  LayoutDashboard, Users, Calendar,
+  BarChart2, PenLine, ArrowLeftRight,
+};
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="px-8 pt-12 pb-8 border-b border-[#e8e8e8]">
-        <p className="text-[11px] text-[#ababab] uppercase tracking-widest mb-3 font-medium">
+    <div className="flex flex-col h-full">
+      <div className="px-8 pt-9 pb-6 border-b border-[#e8e8e8] bg-white">
+        <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-1">
           Lumi Company · Strumenti interni
         </p>
-        <h1 className="text-[26px] font-semibold text-[#1a1a1a] leading-tight mb-2">
+        <h1 className="text-[24px] font-semibold text-[#1a1a1a]">
           SEO Suite
         </h1>
-        <p className="text-[#8f8f8f] text-[13px] max-w-md">
-          Pipeline operativa per keyword strategy, brief editoriali e articoli ottimizzati.
+        <p className="text-[#8f8f8f] text-[13px] mt-1 max-w-lg">
+          Pipeline operativa per keyword strategy, monitoraggio posizioni, brief editoriali
+          e gestione migrazioni SEO.
         </p>
       </div>
-
-      {/* Cards */}
-      <div className="flex-1 px-8 py-8 bg-[#f7f7f6]">
-        <div className="flex flex-col gap-2 max-w-2xl">
-          {TOOLS.map(({ href, icon: Icon, step, title, desc }) => (
-            <Link
-              key={href}
-              href={href}
-              className="group flex items-start gap-4 p-5 rounded-xl border border-[#e8e8e8] bg-white hover:border-[#ccc] hover:shadow-sm transition-all duration-150"
-            >
-              {/* Icon */}
-              <div className="shrink-0 w-8 h-8 rounded-lg bg-[#f5f5f4] border border-[#e8e8e8] flex items-center justify-center group-hover:bg-[#f0f0ef] transition-colors">
-                <Icon size={14} strokeWidth={1.8} className="text-[#737373]" />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] font-medium text-[#c0c0c0] tabular-nums">{step}</span>
-                  <p className="text-[13px] font-medium text-[#1a1a1a]">{title}</p>
-                </div>
-                <p className="text-[12px] text-[#8f8f8f] leading-relaxed">{desc}</p>
-              </div>
-
-              <span className="shrink-0 text-[#ccc] group-hover:text-[#999] transition-colors mt-0.5 text-sm">
-                →
-              </span>
-            </Link>
-          ))}
+      <div className="flex-1 overflow-y-auto bg-[#f7f7f6]">
+        <div className="px-8 py-7 flex flex-col gap-3 max-w-2xl">
+          <ToolCard
+            number="01"
+            title="Dashboard"
+            description="Panoramica cross-cliente: keyword in crescita e in calo per ogni progetto."
+            href="/dashboard"
+            icon="LayoutDashboard"
+          />
+          <ToolCard
+            number="02"
+            title="Clienti"
+            description="Gestisci i profili cliente con keyword target, pipeline editoriale e sync GSC."
+            href="/clients"
+            icon="Users"
+          />
+          <ToolCard
+            number="03"
+            title="Calendario"
+            description="Pianifica le lavorazioni mensili delle keyword cross-cliente."
+            href="/calendar"
+            icon="Calendar"
+          />
+          <ToolCard
+            number="04"
+            title="Analisi SEO"
+            description="Analizza le SERP, studia i competitor e genera brief con GPT-4o."
+            href="/seo"
+            icon="BarChart2"
+          />
+          <ToolCard
+            number="05"
+            title="Redattore"
+            description="Trasforma il brief in un articolo completo, ottimizzato e pronto per la pubblicazione."
+            href="/writer"
+            icon="PenLine"
+          />
+          <ToolCard
+            number="06"
+            title="Migrazione"
+            description="Mappa i redirect 301 tra sito vecchio e nuovo con matching GPT-4o."
+            href="/migration"
+            icon="ArrowLeftRight"
+          />
+          <p className="text-[11px] text-[#c0c0c0] mt-2">
+            Workflow consigliato: Clienti → Analisi SEO → Calendario → Redattore
+          </p>
         </div>
-
-        <p className="mt-8 text-[11px] text-[#c0c0c0]">
-          Workflow consigliato: Clienti → Analisi SEO → Redattore
-        </p>
       </div>
     </div>
+  );
+}
+
+function ToolCard({
+  number, title, description, href, icon,
+}: {
+  number: string; title: string; description: string;
+  href: string; icon: keyof typeof ICONS;
+}) {
+  const Icon = ICONS[icon];
+  return (
+    <Link href={href}>
+      <div className="flex items-center gap-4 px-5 py-4 rounded-xl border border-[#e8e8e8] bg-white hover:border-[#ccc] hover:shadow-sm transition-all cursor-pointer">
+        <div className="w-8 h-8 rounded-lg bg-[#f7f7f6] border border-[#e8e8e8] flex items-center justify-center shrink-0">
+          <Icon size={15} className="text-[#737373]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[10px] font-medium text-[#c0c0c0]">{number}</span>
+            <p className="text-[13px] font-semibold text-[#1a1a1a]">{title}</p>
+          </div>
+          <p className="text-[12px] text-[#8f8f8f] truncate">{description}</p>
+        </div>
+        <span className="text-[#ccc] text-sm shrink-0">→</span>
+      </div>
+    </Link>
   );
 }
