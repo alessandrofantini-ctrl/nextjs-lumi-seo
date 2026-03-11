@@ -132,14 +132,37 @@ type Client = {
 ```
 
 Pagina `app/clients/page.tsx`:
-- Fetch `GET /api/dashboard` al mount via `apiFetch` (restituisce trend per ogni cliente)
+- Fetch `GET /api/dashboard` al mount via `apiFetch` (restituisce trend + metriche GSC per ogni cliente)
 - `GlobalKpi`: 3 KPI card globali (Progetti attivi, Keyword in crescita verde, Keyword in calo rosso)
   — visibile solo quando `!loading && clients.length > 0`
-- Card cliente: sinistra (nome + sector/tone), centro (pill ↑ crescita + ↓ calo), destra (SyncBadge + →)
+- Card cliente: sinistra (nome + sector/tone), centro (GSC metrics se `clicks_curr > 0`, altrimenti fallback keyword count), destra (SyncBadge + →)
+  - Centro con GSC: click + trend%, impressioni + trend%, pos. media, pill ↑↓ keyword
+  - Centro senza GSC: conteggio keyword o "Nessuna keyword"
 - Skeleton loader (`animate-pulse`) con 3 card `h-[72px]` durante loading
 - Empty state se array vuoto
 - Form "Nuovo cliente" → POST `/api/clients` (invariato)
-- Componenti `SyncBadge`, `GlobalKpi`, `KpiCard` definiti in fondo alla pagina
+- Componenti `SyncBadge`, `GlobalKpi`, `KpiCard`, `TrendPct` definiti in fondo alla pagina
+
+### Tipo ClientSummary (app/clients/[id]/page.tsx)
+
+```typescript
+type ClientSummary = {
+  total_clicks: number;
+  total_impressions: number;
+  avg_position: number | null;
+  avg_ctr: number | null;
+  top_clicks: Array<{ keyword: string; clicks: number; impressions: number; position: number }>;
+  top_impressions: Array<{ keyword: string; clicks: number; impressions: number; position: number }>;
+};
+```
+
+Pagina `app/clients/[id]/page.tsx`:
+- `summary` stato caricato in parallelo al cliente (`Promise.all`) via `GET /api/clients/{id}/summary`
+- Se `sumRes.ok`, il summary viene settato; se fallisce, rimane `null` (silenzioso)
+- Sezione "Summary GSC" visibile sopra la KPI bar se `summary && summary.total_clicks > 0`:
+  - 4 KPI card: Click (28gg), Impressioni (28gg), Posizione media, CTR medio
+  - 2 card affiancate: Top 5 per click | Top 5 per impressioni
+- Componente `SummaryKpi` definito in fondo alla pagina
 
 ### 10. Tipi Migrazione
 
