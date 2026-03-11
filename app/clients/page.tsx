@@ -5,7 +5,18 @@ import Link from "next/link";
 import { PageHeader, Section, Card, Label, Input, Textarea, Select, Btn, Alert } from "@/components/ui";
 import { apiFetch } from "@/lib/api";
 
-type Client = { id: string; name: string; url?: string; sector?: string; tone_of_voice?: string };
+// ── Tipi ─────────────────────────────────────────────────────────────────────
+
+type Client = {
+  id: string;
+  name: string;
+  sector?: string;
+  tone_of_voice?: string;
+  total_keywords: number;
+  keywords_crescita: number;
+  keywords_calo: number;
+  last_sync: string | null;
+};
 
 type NewClientForm = {
   name: string; url: string; sector: string; brand_name: string;
@@ -32,6 +43,8 @@ const LOCATION_OPTIONS = [
   { value: 2724, label: "Spagna" },
 ];
 
+// ── Pagina ────────────────────────────────────────────────────────────────────
+
 export default function ClientsPage() {
   const [clients, setClients]   = useState<Client[]>([]);
   const [loading, setLoading]   = useState(false);
@@ -48,7 +61,7 @@ export default function ClientsPage() {
   async function loadClients() {
     setLoading(true);
     try {
-      const r = await apiFetch("/api/clients");
+      const r = await apiFetch("/api/dashboard");
       if (!r.ok) throw new Error("Errore caricamento clienti");
       const data = await r.json();
       setClients(Array.isArray(data) ? data : []);
@@ -103,6 +116,9 @@ export default function ClientsPage() {
       <div className="flex-1 overflow-y-auto bg-[#f7f7f6]">
         <Section>
           {error && <div className="mb-5"><Alert type="error">{error}</Alert></div>}
+
+          {/* KPI globali */}
+          {!loading && clients.length > 0 && <GlobalKpi clients={clients} />}
 
           {/* Bottone nuovo */}
           {!showForm ? (
@@ -185,31 +201,55 @@ export default function ClientsPage() {
             </div>
           )}
 
+          {/* Skeleton */}
           {loading && (
             <div className="flex flex-col gap-2">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-[56px] rounded-lg border border-[#e8e8e8] bg-[#f0f0f0] animate-pulse"
-                />
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-[72px] rounded-xl border border-[#e8e8e8] bg-[#f0f0f0] animate-pulse" />
               ))}
             </div>
           )}
 
+          {/* Lista clienti */}
           <div className="flex flex-col gap-1.5">
             {filtered.map((c) => (
               <Link
                 key={c.id}
                 href={`/clients/${c.id}`}
-                className="group flex items-center justify-between px-4 py-3.5 rounded-lg border border-[#e8e8e8] bg-white hover:border-[#ccc] hover:shadow-sm transition-all"
+                className="group flex items-center justify-between px-5 py-4 rounded-xl border border-[#e8e8e8] bg-white hover:border-[#ccc] hover:shadow-sm transition-all"
               >
-                <div>
-                  <p className="text-[13px] font-medium text-[#1a1a1a]">{c.name}</p>
+                {/* Sinistra — info cliente */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-[#1a1a1a]">{c.name}</p>
                   <p className="text-[11px] text-[#ababab] mt-0.5">
                     {[c.sector, c.tone_of_voice].filter(Boolean).join(" · ") || "—"}
                   </p>
                 </div>
-                <span className="text-[#ccc] group-hover:text-[#999] transition-colors text-sm">→</span>
+
+                {/* Centro — trend keyword */}
+                <div className="flex items-center gap-2 mx-6">
+                  {c.keywords_crescita > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-green-50 text-green-600 border border-green-200">
+                      ↑ {c.keywords_crescita}
+                    </span>
+                  )}
+                  {c.keywords_calo > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-50 text-red-600 border border-red-200">
+                      ↓ {c.keywords_calo}
+                    </span>
+                  )}
+                  {c.keywords_crescita === 0 && c.keywords_calo === 0 && (
+                    <span className="text-[11px] text-[#c0c0c0]">
+                      {c.total_keywords > 0 ? `${c.total_keywords} keyword` : "Nessuna keyword"}
+                    </span>
+                  )}
+                </div>
+
+                {/* Destra — sync badge + freccia */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <SyncBadge lastSync={c.last_sync} />
+                  <span className="text-[#ccc] group-hover:text-[#999] transition-colors text-sm">→</span>
+                </div>
               </Link>
             ))}
           </div>
@@ -222,6 +262,54 @@ export default function ClientsPage() {
           )}
         </Section>
       </div>
+    </div>
+  );
+}
+
+// ── Componenti locali ─────────────────────────────────────────────────────────
+
+function SyncBadge({ lastSync }: { lastSync: string | null }) {
+  if (!lastSync) return (
+    <span className="text-[10px] text-[#c0c0c0]">Nessun sync</span>
+  );
+  const days = Math.floor((Date.now() - new Date(lastSync).getTime()) / 86400000);
+  const color = days <= 7
+    ? "text-green-500"
+    : days <= 14
+      ? "text-[#ababab]"
+      : "text-orange-500";
+  return (
+    <span className={`text-[10px] font-medium ${color}`}>
+      {days === 0 ? "sync oggi" : days === 1 ? "sync ieri" : `sync ${days}gg fa`}
+    </span>
+  );
+}
+
+function GlobalKpi({ clients }: { clients: Client[] }) {
+  const totCrescita = clients.reduce((s, c) => s + c.keywords_crescita, 0);
+  const totCalo     = clients.reduce((s, c) => s + c.keywords_calo,     0);
+  return (
+    <div className="grid grid-cols-3 gap-3 mb-6">
+      <KpiCard label="Progetti attivi" value={clients.length} />
+      <KpiCard
+        label="Keyword in crescita"
+        value={totCrescita}
+        color={totCrescita > 0 ? "text-green-600" : undefined}
+      />
+      <KpiCard
+        label="Keyword in calo"
+        value={totCalo}
+        color={totCalo > 0 ? "text-red-500" : undefined}
+      />
+    </div>
+  );
+}
+
+function KpiCard({ label, value, color }: { label: string; value: number; color?: string }) {
+  return (
+    <div className="rounded-xl border border-[#e8e8e8] bg-white p-4">
+      <p className="text-[10px] font-medium text-[#ababab] uppercase tracking-wide mb-1.5">{label}</p>
+      <p className={`text-[22px] font-semibold ${color ?? "text-[#1a1a1a]"}`}>{value}</p>
     </div>
   );
 }

@@ -15,10 +15,9 @@ Utente primario: HEAD of SEO (Alessandro). Non è un SaaS pubblico.
 
 ```
 app/
-  page.tsx            → homepage (tool card 01–06, workflow consigliato)
+  page.tsx            → homepage (tool card 01–05, workflow consigliato)
   login/              → unica pagina SENZA AppShell (nessun guard auth)
-  dashboard/          → vista cross-cliente: KPI globali + card per cliente con trend keyword crescita/calo
-  clients/            → lista clienti (form nuovo cliente con gsc_property)
+  clients/            → lista clienti con KPI globali + trend keyword + form nuovo cliente
   calendar/           → calendario editoriale: keyword pianificate per mese (vista mensile + lista)
   clients/[id]/       → pagina principale con due tab:
                           "Keyword" — keyword management, GSC sync, briefs
@@ -40,20 +39,19 @@ middleware.ts         → redirect a /login se sessione assente
 ```
 
 ### Homepage (app/page.tsx)
-- 6 `ToolCard` con numero, titolo, descrizione, href e icona lucide
-- Ordine: Dashboard, Clienti, Calendario, Analisi SEO, Redattore, Migrazione
+- 5 `ToolCard` con numero, titolo, descrizione, href e icona lucide
+- Ordine: Clienti & Dashboard, Calendario, Analisi SEO, Redattore, Migrazione
 - Componente `ToolCard` definito in fondo alla pagina (non file separato)
-- Icone da `ICONS = { LayoutDashboard, Users, Calendar, BarChart2, PenLine, ArrowLeftRight }`
+- Icone da `ICONS = { Users, Calendar, BarChart2, PenLine, ArrowLeftRight }`
 - Layout: header bianco + scrollable area `bg-[#f7f7f6]`, `max-w-2xl`
 
 ### Sidebar (components/Sidebar.tsx)
 Ordine nav esatto:
-1. Dashboard → /dashboard — `LayoutDashboard`
-2. Clienti → /clients — `Users`
-3. Calendario → /calendar — `Calendar`
-4. Analisi SEO → /seo — `BarChart2`
-5. Redattore → /writer — `PenLine`
-6. Migrazione → /migration — `ArrowLeftRight`
+1. Clienti → /clients — `Users`
+2. Calendario → /calendar — `Calendar`
+3. Analisi SEO → /seo — `BarChart2`
+4. Redattore → /writer — `PenLine`
+5. Migrazione → /migration — `ArrowLeftRight`
 
 In fondo (separati da border-t):
 - Impostazioni → /impostazioni — `Settings`
@@ -118,13 +116,14 @@ I colori/label per ogni status sono definiti in `STATUS_CFG` all'inizio di `clie
 - Ordinamento `filteredMonKw`: keyword con position asc → keyword senza position ordinate per `search_volume` desc → alfabetico.
 - Empty state Monitoraggio: visibile solo se `keyword_history.length === 0`.
 
-### 11. Tipo Dashboard
+### 11. Tipo Client (app/clients/page.tsx)
 
 ```typescript
-type DashboardClient = {
+type Client = {
   id: string;
   name: string;
   sector?: string;
+  tone_of_voice?: string;
   total_keywords: number;
   keywords_crescita: number;  // keyword con position < position_prev
   keywords_calo: number;      // keyword con position > position_prev
@@ -132,16 +131,15 @@ type DashboardClient = {
 };
 ```
 
-Pagina `app/dashboard/page.tsx`:
-- Fetch `GET /api/dashboard` al mount via `apiFetch`
-- 3 KPI card globali: Progetti attivi, Keyword in crescita (verde), Keyword in calo (rosso)
-- Griglia card clienti `grid-cols-3` desktop / `grid-cols-1` mobile — cliccabili → `/clients/{id}`
-- `TrendPill`: pill verde (↑ crescita) o rosso (↓ calo); hidden se value === 0
-- `SyncBadge`: testo colorato — verde ≤7gg, grigio ≤14gg, arancione >14gg
-- Skeleton loader (`animate-pulse`) con 6 card durante loading
+Pagina `app/clients/page.tsx`:
+- Fetch `GET /api/dashboard` al mount via `apiFetch` (restituisce trend per ogni cliente)
+- `GlobalKpi`: 3 KPI card globali (Progetti attivi, Keyword in crescita verde, Keyword in calo rosso)
+  — visibile solo quando `!loading && clients.length > 0`
+- Card cliente: sinistra (nome + sector/tone), centro (pill ↑ crescita + ↓ calo), destra (SyncBadge + →)
+- Skeleton loader (`animate-pulse`) con 3 card `h-[72px]` durante loading
 - Empty state se array vuoto
-- Componenti `TrendPill`, `SyncBadge`, `SkeletonGrid` definiti in fondo alla pagina (non file separati)
-- Sidebar: voce "Dashboard" con icona `LayoutDashboard` — prima voce del menu
+- Form "Nuovo cliente" → POST `/api/clients` (invariato)
+- Componenti `SyncBadge`, `GlobalKpi`, `KpiCard` definiti in fondo alla pagina
 
 ### 10. Tipi Migrazione
 
