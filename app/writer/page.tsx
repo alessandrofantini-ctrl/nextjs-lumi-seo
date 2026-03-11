@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { PageHeader, Section, Label, Select, Textarea, Btn, Alert } from "@/components/ui";
 import { apiFetch } from "@/lib/api";
 
-type Brief = { id: string; keyword: string; market: string; created_at: string };
+type Brief = { id: string; keyword: string; market: string; created_at: string; client_id: string | null };
 
 const LENGTHS = ["Standard", "Long form", "Authority guide"];
 
 export default function WriterPage() {
   const [briefs, setBriefs]         = useState<Brief[]>([]);
   const [briefId, setBriefId]       = useState("");
+  const [clientId, setClientId]     = useState<string | null>(null);
   const [briefText, setBriefText]   = useState("");
   const [brandName, setBrandName]   = useState("");
   const [targetUrl, setTargetUrl]   = useState("");
@@ -38,6 +39,7 @@ export default function WriterPage() {
         method: "POST",
         body: JSON.stringify({
           brief_id: briefId || null, brief_text: briefText || null,
+          client_id: clientId,
           brand_name: brandName, target_page_url: targetUrl,
           length, creativity,
         }),
@@ -68,7 +70,17 @@ export default function WriterPage() {
             <Label>Brief salvato</Label>
             <Select
               value={briefId}
-              onChange={(e) => { setBriefId(e.target.value); if (e.target.value) setBriefText(""); }}
+              onChange={(e) => {
+                const val = e.target.value;
+                setBriefId(val);
+                if (val) {
+                  setBriefText("");
+                  const found = briefs.find((b) => b.id === val);
+                  setClientId(found?.client_id ?? null);
+                } else {
+                  setClientId(null);
+                }
+              }}
             >
               <option value="">— Oppure incolla il testo qui sotto —</option>
               {briefs.map((b) => (
