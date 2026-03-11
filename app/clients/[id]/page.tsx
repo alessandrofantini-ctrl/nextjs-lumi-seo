@@ -1164,13 +1164,19 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
         )}
 
         {/* Analizza */}
-        <Link
-          href={`/seo?keyword=${encodeURIComponent(kw.keyword)}&client_id=${clientId}`}
-          onClick={(e) => e.stopPropagation()}
-          className="text-[11px] text-[#ababab] hover:text-[#555] opacity-0 group-hover:opacity-100 transition-all shrink-0 whitespace-nowrap"
-        >
-          Analizza →
-        </Link>
+        {(kw.status === "planned" || kw.status === "backlog") && (
+          <Link
+            href={`/seo?keyword=${encodeURIComponent(kw.keyword)}&client_id=${clientId}`}
+            onClick={(e) => e.stopPropagation()}
+            className={`text-[11px] shrink-0 whitespace-nowrap transition-all px-2 py-0.5 rounded-md border ${
+              kw.status === "planned"
+                ? "text-[#2563eb] border-[#bfdbfe] bg-[#eff6ff] hover:bg-[#dbeafe]"
+                : "text-[#ababab] hover:text-[#555] opacity-0 group-hover:opacity-100 border-transparent"
+            }`}
+          >
+            Analizza →
+          </Link>
+        )}
 
         {/* Delete */}
         <button
