@@ -50,8 +50,9 @@ Ordine nav esatto:
 1. Clienti → /clients — `Users`
 2. Calendario → /calendar — `Calendar`
 3. Analisi SEO → /seo — `BarChart2`
-4. Redattore → /writer — `PenLine`
-5. Migrazione → /migration — `ArrowLeftRight`
+4. Brief → /briefs — `FileText`
+5. Redattore → /writer — `PenLine`
+6. Migrazione → /migration — `ArrowLeftRight`
 
 In fondo (separati da border-t):
 - Impostazioni → /impostazioni — `Settings`
@@ -163,6 +164,35 @@ Pagina `app/clients/[id]/page.tsx`:
   - 4 KPI card: Click (28gg), Impressioni (28gg), Posizione media, CTR medio
   - 2 card affiancate: Top 5 per click | Top 5 per impressioni
 - Componente `SummaryKpi` definito in fondo alla pagina
+
+### 17. Pagina Brief (app/briefs/page.tsx)
+
+```typescript
+type Brief = {
+  id: string;
+  keyword: string;
+  market: string;
+  intent: string | null;
+  created_at: string;
+  client_id: string | null;
+  brief_output: string;
+};
+```
+
+- Fetch `GET /api/seo/briefs` al mount → tutti i campi incluso `brief_output`
+- Filtro ricerca locale per keyword (no API call) tramite `useMemo`
+- Una sola riga espandibile alla volta (`expandedId: string | null`)
+- Stato per ogni riga gestito con mappe indicizzate per id: `editTexts`, `rowError`
+- **BriefRow** (componente definito in fondo alla pagina):
+  - Stato collassato: keyword · market · intent · data + bottoni "Modifica" / "Elimina"
+  - Stato modifica: textarea font-mono 20 righe + "Salva modifiche" / "Annulla"
+  - Stato elimina: conferma inline "Sei sicuro? Questa azione è irreversibile." + "Sì, elimina" / "Annulla"
+  - Feedback "✓ Salvato" in verde per 2s dopo salvataggio (via `savedId` + `setTimeout`)
+  - `Alert type="error"` inline nella riga in caso di errore
+- Salvataggio: `PATCH /api/seo/briefs/{id}` — aggiorna lista locale senza refetch
+- Eliminazione: `DELETE /api/seo/briefs/{id}` — rimuove riga localmente senza refetch
+- Empty state: messaggio diverso se ricerca attiva vs lista vuota
+- Skeleton loader (3 righe `h-12 animate-pulse`) durante caricamento iniziale
 
 ### 16. Redattore articoli (app/writer/page.tsx)
 

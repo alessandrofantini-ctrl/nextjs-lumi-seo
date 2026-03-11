@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Users, BarChart2, PenLine, Settings, LogOut,
-  ArrowLeftRight, Calendar,
+  ArrowLeftRight, Calendar, FileText,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -13,6 +13,7 @@ const NAV = [
   { href: "/clients",   label: "Clienti",     icon: Users           },
   { href: "/calendar",  label: "Calendario",  icon: Calendar        },
   { href: "/seo",       label: "Analisi SEO", icon: BarChart2       },
+  { href: "/briefs",    label: "Brief",        icon: FileText        },
   { href: "/writer",    label: "Redattore",   icon: PenLine         },
   { href: "/migration", label: "Migrazione",  icon: ArrowLeftRight  },
 ];
