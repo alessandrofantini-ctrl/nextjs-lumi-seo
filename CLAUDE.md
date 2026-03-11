@@ -164,6 +164,31 @@ Pagina `app/clients/[id]/page.tsx`:
   - 2 card affiancate: Top 5 per click | Top 5 per impressioni
 - Componente `SummaryKpi` definito in fondo alla pagina
 
+### 16. Redattore articoli (app/writer/page.tsx)
+
+```typescript
+type Brief = {
+  id: string;
+  keyword: string;
+  market: string;
+  created_at: string;
+  client_id: string | null;
+};
+
+type ClientOption = {
+  id: string;
+  name: string;
+};
+```
+
+- `useEffect` carica briefs e clienti in parallelo con `Promise.all`:
+  - `GET /api/seo/briefs` → `setBriefs`
+  - `GET /api/writer/clients` → `setClients`
+- **Selettore cliente** (primo nel form): popola `clientId` state; se selezionato, mostra badge verde "✓ Tone of voice e note del cliente verranno applicati"
+- **Selettore brief**: se il brief ha `client_id` e il selettore cliente è ancora vuoto, pre-compila `clientId` automaticamente — non sovrascrive scelta già fatta dall'utente
+- POST body include `client_id: clientId || null`
+- Graceful degradation: se nessun cliente selezionato, il redattore funziona come prima
+
 ### 10. Tipi Migrazione
 
 ```typescript

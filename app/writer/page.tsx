@@ -4,14 +4,26 @@ import { useEffect, useState } from "react";
 import { PageHeader, Section, Label, Select, Textarea, Btn, Alert } from "@/components/ui";
 import { apiFetch } from "@/lib/api";
 
-type Brief = { id: string; keyword: string; market: string; created_at: string; client_id: string | null };
+type Brief = {
+  id: string;
+  keyword: string;
+  market: string;
+  created_at: string;
+  client_id: string | null;
+};
+
+type ClientOption = {
+  id: string;
+  name: string;
+};
 
 const LENGTHS = ["Standard", "Long form", "Authority guide"];
 
 export default function WriterPage() {
   const [briefs, setBriefs]         = useState<Brief[]>([]);
+  const [clients, setClients]       = useState<ClientOption[]>([]);
+  const [clientId, setClientId]     = useState<string>("");
   const [briefId, setBriefId]       = useState("");
-  const [clientId, setClientId]     = useState<string | null>(null);
   const [briefText, setBriefText]   = useState("");
   const [brandName, setBrandName]   = useState("");
   const [targetUrl, setTargetUrl]   = useState("");
@@ -22,10 +34,14 @@ export default function WriterPage() {
   const [article, setArticle]       = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/seo/briefs")
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then((data) => setBriefs(Array.isArray(data) ? data : []))
-      .catch(() => {});
+    Promise.all([
+      apiFetch("/api/seo/briefs")
+        .then((r) => r.ok ? r.json() : [])
+        .then((data) => setBriefs(Array.isArray(data) ? data : [])),
+      apiFetch("/api/writer/clients")
+        .then((r) => r.ok ? r.json() : [])
+        .then((data) => setClients(Array.isArray(data) ? data : [])),
+    ]).catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,10 +54,13 @@ export default function WriterPage() {
       const r = await apiFetch("/api/writer/generate", {
         method: "POST",
         body: JSON.stringify({
-          brief_id: briefId || null, brief_text: briefText || null,
-          client_id: clientId,
-          brand_name: brandName, target_page_url: targetUrl,
-          length, creativity,
+          brief_id:        briefId || null,
+          brief_text:      briefText || null,
+          brand_name:      brandName,
+          target_page_url: targetUrl,
+          length,
+          creativity,
+          client_id:       clientId || null,
         }),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore"); }
@@ -67,18 +86,37 @@ export default function WriterPage() {
       <Section>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
+            <Label>Cliente</Label>
+            <Select
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            >
+              <option value="">— Nessun cliente selezionato —</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+            {clientId && (
+              <p className="mt-1 text-[11px] text-green-600">
+                ✓ Tone of voice e note del cliente verranno applicati
+              </p>
+            )}
+          </div>
+
+          <div>
             <Label>Brief salvato</Label>
             <Select
               value={briefId}
               onChange={(e) => {
-                const val = e.target.value;
-                setBriefId(val);
-                if (val) {
+                const selectedId = e.target.value;
+                setBriefId(selectedId);
+                if (selectedId) {
                   setBriefText("");
-                  const found = briefs.find((b) => b.id === val);
-                  setClientId(found?.client_id ?? null);
-                } else {
-                  setClientId(null);
+                  // Pre-compila cliente dal brief solo se non già selezionato
+                  const found = briefs.find((b) => b.id === selectedId);
+                  if (found?.client_id && !clientId) {
+                    setClientId(found.client_id);
+                  }
                 }
               }}
             >
