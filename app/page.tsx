@@ -1,11 +1,11 @@
 import Link from "next/link";
 import {
-  LayoutDashboard, Users, Calendar,
+  Users, Calendar,
   BarChart2, PenLine, ArrowLeftRight,
 } from "lucide-react";
 
 const ICONS = {
-  LayoutDashboard, Users, Calendar,
+  Users, Calendar,
   BarChart2, PenLine, ArrowLeftRight,
 };
 
@@ -28,41 +28,34 @@ export default function HomePage() {
         <div className="px-8 py-7 flex flex-col gap-3 max-w-2xl">
           <ToolCard
             number="01"
-            title="Dashboard"
-            description="Panoramica cross-cliente: keyword in crescita e in calo per ogni progetto."
-            href="/dashboard"
-            icon="LayoutDashboard"
-          />
-          <ToolCard
-            number="02"
-            title="Clienti"
-            description="Gestisci i profili cliente con keyword target, pipeline editoriale e sync GSC."
+            title="Clienti & Dashboard"
+            description="Panoramica cross-cliente con trend keyword, profili e pipeline editoriale."
             href="/clients"
             icon="Users"
           />
           <ToolCard
-            number="03"
+            number="02"
             title="Calendario"
             description="Pianifica le lavorazioni mensili delle keyword cross-cliente."
             href="/calendar"
             icon="Calendar"
           />
           <ToolCard
-            number="04"
+            number="03"
             title="Analisi SEO"
             description="Analizza le SERP, studia i competitor e genera brief con GPT-4o."
             href="/seo"
             icon="BarChart2"
           />
           <ToolCard
-            number="05"
+            number="04"
             title="Redattore"
             description="Trasforma il brief in un articolo completo, ottimizzato e pronto per la pubblicazione."
             href="/writer"
             icon="PenLine"
           />
           <ToolCard
-            number="06"
+            number="05"
             title="Migrazione"
             description="Mappa i redirect 301 tra sito vecchio e nuovo con matching GPT-4o."
             href="/migration"
