@@ -37,21 +37,6 @@ function groupByClient(kws: CalendarKeyword[]): Record<string, CalendarKeyword[]
   );
 }
 
-function getCalendarDays(year: number, month: number): (number | null)[] {
-  const firstDay = new Date(year, month, 1).getDay();
-  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
-}
-
-function monthStr(year: number, month: number): string {
-  return `${year}-${String(month + 1).padStart(2, "0")}`;
-}
-
 function formatMonthLabel(ym: string): string {
   const [year, mon] = ym.split("-").map(Number);
   return new Date(year, mon - 1, 1).toLocaleDateString("it-IT", {
@@ -121,16 +106,11 @@ function MonthDropZone({
   );
 }
 
-const DAY_LABELS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
-
 export default function CalendarPage() {
   const [keywords, setKeywords] = useState<CalendarKeyword[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"monthly" | "list">("monthly");
-
-  const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-indexed
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     apiFetch("/api/clients/calendar")
@@ -139,22 +119,24 @@ export default function CalendarPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const currentMonthStr = monthStr(viewYear, viewMonth);
-
   const currentMonthKeywords = useMemo(
-    () => keywords.filter((kw) => kw.planned_month?.startsWith(currentMonthStr)),
-    [keywords, currentMonthStr]
-  );
-
-  const calendarDays = useMemo(
-    () => getCalendarDays(viewYear, viewMonth),
-    [viewYear, viewMonth]
+    () =>
+      keywords.filter((kw) => {
+        if (!kw.planned_month) return false;
+        return kw.planned_month.substring(0, 7) ===
+          currentDate.toISOString().substring(0, 7);
+      }),
+    [keywords, currentDate]
   );
 
   const dropZoneMonths = useMemo(
     () =>
-      Array.from({ length: 6 }, (_, i) => new Date(viewYear, viewMonth + i, 1)),
-    [viewYear, viewMonth]
+      Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(currentDate);
+        d.setMonth(d.getMonth() + i);
+        return d;
+      }),
+    [currentDate]
   );
 
   const sortedKeywords = useMemo(
@@ -202,22 +184,12 @@ export default function CalendarPage() {
     );
   }
 
-  function prevMonth() {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear((y) => y - 1);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
-  }
-
-  function nextMonth() {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear((y) => y + 1);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
+  function navigateMonth(direction: number) {
+    setCurrentDate((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() + direction);
+      return d;
+    });
   }
 
   return (
@@ -259,39 +231,42 @@ export default function CalendarPage() {
       ) : view === "monthly" ? (
         <div>
           {/* Month navigation */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-4 mb-6">
             <button
-              onClick={prevMonth}
+              onClick={() => navigateMonth(-1)}
               className="p-1.5 rounded-md hover:bg-[#f5f5f4] text-[#737373]"
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-[15px] font-semibold text-[#1a1a1a] capitalize min-w-[160px] text-center">
-              {formatMonthLabel(currentMonthStr)}
-            </span>
+            <h2 className="text-[15px] font-semibold text-[#1a1a1a] capitalize">
+              {currentDate.toLocaleDateString("it-IT", {
+                month: "long",
+                year: "numeric",
+              })}
+            </h2>
             <button
-              onClick={nextMonth}
+              onClick={() => navigateMonth(1)}
               className="p-1.5 rounded-md hover:bg-[#f5f5f4] text-[#737373]"
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
-          {/* "In questo mese" header */}
-          <div className="mb-6">
-            <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-3">
-              {currentMonthKeywords.length} keyword pianificate
+          {/* Keywords for current month grouped by client */}
+          {currentMonthKeywords.length === 0 ? (
+            <p className="text-[#ababab] text-[13px]">
+              Nessuna keyword pianificata per questo mese.
             </p>
-            {currentMonthKeywords.length === 0 ? (
-              <p className="text-[12px] text-[#c0c0c0]">
-                Nessuna keyword pianificata per questo mese.
-              </p>
-            ) : (
-              Object.entries(groupByClient(currentMonthKeywords)).map(
+          ) : (
+            <div className="flex flex-col gap-6">
+              {Object.entries(groupByClient(currentMonthKeywords)).map(
                 ([clientName, kws]) => (
-                  <div key={clientName} className="mb-4">
-                    <p className="text-[12px] font-semibold text-[#333] mb-2">
+                  <div key={clientName}>
+                    <p className="text-[11px] font-semibold text-[#555] uppercase tracking-wide mb-3">
                       {clientName}
+                      <span className="ml-2 font-normal text-[#ababab]">
+                        ({kws.length})
+                      </span>
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {kws.map((kw) => (
@@ -300,56 +275,16 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 )
-              )
-            )}
-          </div>
-
-          {/* Calendar grid */}
-          <div className="mb-8 border border-[#e8e8e8] rounded-lg overflow-hidden">
-            <div className="grid grid-cols-7 bg-[#f5f5f4]">
-              {DAY_LABELS.map((d) => (
-                <div
-                  key={d}
-                  className="px-2 py-2 text-center text-[10px] font-medium text-[#ababab] uppercase tracking-wide"
-                >
-                  {d}
-                </div>
-              ))}
+              )}
             </div>
-            <div className="grid grid-cols-7">
-              {calendarDays.map((day, i) => {
-                const isToday =
-                  day === today.getDate() &&
-                  viewMonth === today.getMonth() &&
-                  viewYear === today.getFullYear();
-                return (
-                  <div
-                    key={i}
-                    className={`min-h-[52px] border-t border-r border-[#f0f0ef] p-2 ${
-                      day === null ? "bg-[#fafafa]" : isToday ? "bg-[#eff6ff]" : "bg-white"
-                    }`}
-                  >
-                    {day !== null && (
-                      <span
-                        className={`text-[11px] font-medium ${
-                          isToday ? "text-[#2563eb]" : "text-[#c0c0c0]"
-                        }`}
-                      >
-                        {day}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          )}
 
           {/* Drop zones */}
-          <div>
+          <div className="mt-8">
             <p className="text-[11px] font-medium text-[#ababab] uppercase tracking-wide mb-3">
-              Sposta keyword — trascina su un mese
+              Sposta keyword in un altro mese
             </p>
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-6 gap-2">
               {dropZoneMonths.map((month, i) => (
                 <MonthDropZone key={i} month={month} onDrop={handleDrop} />
               ))}
