@@ -52,7 +52,8 @@ Ordine nav esatto:
 3. Analisi SEO → /seo — `BarChart2`
 4. Brief → /briefs — `FileText`
 5. Redattore → /writer — `PenLine`
-6. Migrazione → /migration — `ArrowLeftRight`
+6. Articoli → /articles — `BookOpen`
+7. Migrazione → /migration — `ArrowLeftRight`
 
 In fondo (separati da border-t):
 - Impostazioni → /impostazioni — `Settings`
@@ -165,6 +166,40 @@ Pagina `app/clients/[id]/page.tsx`:
   - 2 card affiancate: Top 5 per click | Top 5 per impressioni
 - Componente `SummaryKpi` definito in fondo alla pagina
 
+### 18. Pagina Articoli (app/articles/page.tsx)
+
+```typescript
+type Article = {
+  id: string;
+  keyword: string;
+  market: string;
+  intent: string | null;
+  created_at: string;
+  client_id: string | null;
+  article_output: string;
+};
+```
+
+- Fetch `GET /api/writer/articles` al mount
+- Filtro ricerca locale per keyword via `useMemo`
+- Una sola riga espandibile alla volta
+- **ArticleRow** (componente in fondo alla pagina):
+  - Bottoni in ordine: "Esporta .docx" / "Modifica" / "Elimina"
+  - Textarea font-mono 24 righe per editing
+  - Conferma eliminazione inline: "L'articolo verrà rimosso (il brief resterà disponibile)."
+- `PATCH /api/writer/articles/{id}` — aggiorna lista locale
+- `DELETE /api/writer/articles/{id}` — azzera article_output, rimuove riga localmente
+- Export `.docx` lato client via `docx` npm + `file-saver`: nome file `{keyword}-articolo.docx`
+
+### Export .docx — funzioni condivise (briefs e articles)
+
+Helpers `parseInlineMarkdown` e `parseMarkdownToDocx` definiti in ogni pagina (no file separato).
+- `parseInlineMarkdown(text)`: gestisce `**bold**` inline → `TextRun[]`
+- `parseMarkdownToDocx(markdown)`: converte `# H1`, `## H2`, `### H3`, `- bullet`, paragrafi normali → `{ children: Paragraph[], numbering }`
+- `handleExportDocx(article)` in `/articles`: nome `{keyword}-articolo.docx`
+- `handleExportBriefDocx(brief)` in `/briefs`: nome `{keyword}-brief.docx`
+- Font Arial 24pt body, 32/28/26pt per H1/H2/H3; margini A4 (1440 twips)
+
 ### 17. Pagina Brief (app/briefs/page.tsx)
 
 ```typescript
@@ -184,13 +219,14 @@ type Brief = {
 - Una sola riga espandibile alla volta (`expandedId: string | null`)
 - Stato per ogni riga gestito con mappe indicizzate per id: `editTexts`, `rowError`
 - **BriefRow** (componente definito in fondo alla pagina):
-  - Stato collassato: keyword · market · intent · data + bottoni "Modifica" / "Elimina"
+  - Stato collassato: keyword · market · intent · data + bottoni "Esporta .docx" / "Modifica" / "Elimina"
   - Stato modifica: textarea font-mono 20 righe + "Salva modifiche" / "Annulla"
   - Stato elimina: conferma inline "Sei sicuro? Questa azione è irreversibile." + "Sì, elimina" / "Annulla"
   - Feedback "✓ Salvato" in verde per 2s dopo salvataggio (via `savedId` + `setTimeout`)
   - `Alert type="error"` inline nella riga in caso di errore
 - Salvataggio: `PATCH /api/seo/briefs/{id}` — aggiorna lista locale senza refetch
 - Eliminazione: `DELETE /api/seo/briefs/{id}` — rimuove riga localmente senza refetch
+- Export `.docx` lato client: `handleExportBriefDocx(brief)` → nome `{keyword}-brief.docx`
 - Empty state: messaggio diverso se ricerca attiva vs lista vuota
 - Skeleton loader (3 righe `h-12 animate-pulse`) durante caricamento iniziale
 

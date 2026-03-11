@@ -9,14 +9,14 @@ import {
   HeadingLevel, AlignmentType, LevelFormat,
 } from "docx";
 
-type Brief = {
+type Article = {
   id: string;
   keyword: string;
   market: string;
   intent: string | null;
   created_at: string;
   client_id: string | null;
-  brief_output: string;
+  article_output: string;
 };
 
 // ══════════════════════════════════════════════
@@ -87,8 +87,8 @@ function parseMarkdownToDocx(markdown: string) {
   return { children, numbering };
 }
 
-async function handleExportBriefDocx(brief: Brief) {
-  const { children, numbering } = parseMarkdownToDocx(brief.brief_output);
+async function handleExportDocx(article: Article) {
+  const { children, numbering } = parseMarkdownToDocx(article.article_output);
 
   const doc = new Document({
     numbering,
@@ -127,7 +127,7 @@ async function handleExportBriefDocx(brief: Brief) {
   });
 
   const blob = await Packer.toBlob(doc);
-  const filename = `${brief.keyword.replace(/\s+/g, "-").toLowerCase()}-brief.docx`;
+  const filename = `${article.keyword.replace(/\s+/g, "-").toLowerCase()}-articolo.docx`;
   saveAs(blob, filename);
 }
 
@@ -135,8 +135,8 @@ async function handleExportBriefDocx(brief: Brief) {
 //  PAGE
 // ══════════════════════════════════════════════
 
-export default function BriefsPage() {
-  const [briefs, setBriefs]             = useState<Brief[]>([]);
+export default function ArticlesPage() {
+  const [articles, setArticles]         = useState<Article[]>([]);
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState("");
   const [expandedId, setExpandedId]     = useState<string | null>(null);
@@ -147,78 +147,78 @@ export default function BriefsPage() {
   const [rowError, setRowError]         = useState<Record<string, string>>({});
 
   useEffect(() => {
-    apiFetch("/api/seo/briefs")
+    apiFetch("/api/writer/articles")
       .then((r) => r.ok ? r.json() : Promise.reject())
-      .then((data) => setBriefs(Array.isArray(data) ? data : []))
+      .then((data) => setArticles(Array.isArray(data) ? data : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return briefs;
+    if (!search.trim()) return articles;
     const q = search.toLowerCase();
-    return briefs.filter((b) => b.keyword.toLowerCase().includes(q));
-  }, [briefs, search]);
+    return articles.filter((a) => a.keyword.toLowerCase().includes(q));
+  }, [articles, search]);
 
-  function openEdit(brief: Brief) {
-    setExpandedId(brief.id);
+  function openEdit(article: Article) {
+    setExpandedId(article.id);
     setConfirmDeleteId(null);
-    if (!(brief.id in editTexts)) {
-      setEditTexts((prev) => ({ ...prev, [brief.id]: brief.brief_output }));
+    if (!(article.id in editTexts)) {
+      setEditTexts((prev) => ({ ...prev, [article.id]: article.article_output }));
     }
-    setRowError((prev) => ({ ...prev, [brief.id]: "" }));
+    setRowError((prev) => ({ ...prev, [article.id]: "" }));
   }
 
   function closeEdit() {
     setExpandedId(null);
   }
 
-  async function handleSave(brief: Brief) {
-    setSavingId(brief.id);
-    setRowError((prev) => ({ ...prev, [brief.id]: "" }));
+  async function handleSave(article: Article) {
+    setSavingId(article.id);
+    setRowError((prev) => ({ ...prev, [article.id]: "" }));
     try {
-      const r = await apiFetch(`/api/seo/briefs/${brief.id}`, {
+      const r = await apiFetch(`/api/writer/articles/${article.id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          brief_output: editTexts[brief.id] ?? brief.brief_output,
+          article_output: editTexts[article.id] ?? article.article_output,
         }),
       });
       if (!r.ok) throw new Error();
-      setBriefs((prev) =>
-        prev.map((b) =>
-          b.id === brief.id
-            ? { ...b, brief_output: editTexts[brief.id] ?? b.brief_output }
-            : b
+      setArticles((prev) =>
+        prev.map((a) =>
+          a.id === article.id
+            ? { ...a, article_output: editTexts[article.id] ?? a.article_output }
+            : a
         )
       );
       setExpandedId(null);
-      setSavedId(brief.id);
+      setSavedId(article.id);
       setTimeout(() => setSavedId(null), 2000);
     } catch {
-      setRowError((prev) => ({ ...prev, [brief.id]: "Errore nel salvataggio. Riprova." }));
+      setRowError((prev) => ({ ...prev, [article.id]: "Errore nel salvataggio. Riprova." }));
     } finally {
       setSavingId(null);
     }
   }
 
-  async function handleDelete(briefId: string) {
+  async function handleDelete(articleId: string) {
     try {
-      const r = await apiFetch(`/api/seo/briefs/${briefId}`, {
+      const r = await apiFetch(`/api/writer/articles/${articleId}`, {
         method: "DELETE",
       });
       if (!r.ok) throw new Error();
-      setBriefs((prev) => prev.filter((b) => b.id !== briefId));
+      setArticles((prev) => prev.filter((a) => a.id !== articleId));
       setConfirmDeleteId(null);
     } catch {
-      setRowError((prev) => ({ ...prev, [briefId]: "Errore nell'eliminazione. Riprova." }));
+      setRowError((prev) => ({ ...prev, [articleId]: "Errore nell'eliminazione. Riprova." }));
     }
   }
 
   return (
     <div className="flex flex-col h-full">
       <PageHeader
-        title="Brief salvati"
-        subtitle="Visualizza, modifica ed elimina i brief generati."
+        title="Articoli generati"
+        subtitle="Visualizza, modifica ed elimina gli articoli SEO."
       />
 
       <Section>
@@ -240,33 +240,33 @@ export default function BriefsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-[13px] text-[#ababab] py-8 text-center">
-            {search ? "Nessun brief trovato per questa ricerca." : "Nessun brief salvato."}
+            {search ? "Nessun articolo trovato per questa ricerca." : "Nessun articolo generato."}
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {filtered.map((brief) => (
-              <BriefRow
-                key={brief.id}
-                brief={brief}
-                expanded={expandedId === brief.id}
-                editText={editTexts[brief.id] ?? brief.brief_output}
-                confirmDelete={confirmDeleteId === brief.id}
-                saving={savingId === brief.id}
-                saved={savedId === brief.id}
-                error={rowError[brief.id] ?? ""}
-                onEditOpen={() => openEdit(brief)}
+            {filtered.map((article) => (
+              <ArticleRow
+                key={article.id}
+                article={article}
+                expanded={expandedId === article.id}
+                editText={editTexts[article.id] ?? article.article_output}
+                confirmDelete={confirmDeleteId === article.id}
+                saving={savingId === article.id}
+                saved={savedId === article.id}
+                error={rowError[article.id] ?? ""}
+                onEditOpen={() => openEdit(article)}
                 onEditClose={closeEdit}
                 onEditChange={(val) =>
-                  setEditTexts((prev) => ({ ...prev, [brief.id]: val }))
+                  setEditTexts((prev) => ({ ...prev, [article.id]: val }))
                 }
-                onSave={() => handleSave(brief)}
-                onExport={() => handleExportBriefDocx(brief)}
+                onSave={() => handleSave(article)}
+                onExport={() => handleExportDocx(article)}
                 onDeleteRequest={() => {
-                  setConfirmDeleteId(brief.id);
+                  setConfirmDeleteId(article.id);
                   setExpandedId(null);
-                  setRowError((prev) => ({ ...prev, [brief.id]: "" }));
+                  setRowError((prev) => ({ ...prev, [article.id]: "" }));
                 }}
-                onDeleteConfirm={() => handleDelete(brief.id)}
+                onDeleteConfirm={() => handleDelete(article.id)}
                 onDeleteCancel={() => setConfirmDeleteId(null)}
               />
             ))}
@@ -278,11 +278,11 @@ export default function BriefsPage() {
 }
 
 // ══════════════════════════════════════════════
-//  BriefRow
+//  ArticleRow
 // ══════════════════════════════════════════════
 
-type BriefRowProps = {
-  brief: Brief;
+type ArticleRowProps = {
+  article: Article;
   expanded: boolean;
   editText: string;
   confirmDelete: boolean;
@@ -299,19 +299,19 @@ type BriefRowProps = {
   onDeleteCancel: () => void;
 };
 
-function BriefRow({
-  brief, expanded, editText, confirmDelete, saving, saved, error,
+function ArticleRow({
+  article, expanded, editText, confirmDelete, saving, saved, error,
   onEditOpen, onEditClose, onEditChange, onSave, onExport,
   onDeleteRequest, onDeleteConfirm, onDeleteCancel,
-}: BriefRowProps) {
-  const date = new Date(brief.created_at).toLocaleDateString("it-IT");
-  const meta = [brief.market, brief.intent, date].filter(Boolean).join(" · ");
+}: ArticleRowProps) {
+  const date = new Date(article.created_at).toLocaleDateString("it-IT");
+  const meta = [article.market, article.intent, date].filter(Boolean).join(" · ");
 
   return (
     <div className="rounded-lg border border-[#e8e8e8] bg-white overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-[#1a1a1a] truncate">{brief.keyword}</p>
+          <p className="text-[13px] font-medium text-[#1a1a1a] truncate">{article.keyword}</p>
           <p className="text-[11px] text-[#ababab] mt-0.5">{meta}</p>
         </div>
 
@@ -343,7 +343,9 @@ function BriefRow({
 
         {confirmDelete && (
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[11px] text-[#737373]">Sei sicuro? Questa azione è irreversibile.</span>
+            <span className="text-[11px] text-[#737373]">
+              Sei sicuro? L&apos;articolo verrà rimosso (il brief resterà disponibile).
+            </span>
             <Btn
               variant="ghost"
               onClick={onDeleteConfirm}
@@ -362,11 +364,11 @@ function BriefRow({
         <div className="border-t border-[#f0f0ef] px-4 pb-4 pt-3 flex flex-col gap-3 bg-[#fafafa]">
           {error && <Alert type="error">{error}</Alert>}
           <div>
-            <Label>Testo del brief</Label>
+            <Label>Testo dell&apos;articolo</Label>
             <Textarea
               value={editText}
               onChange={(e) => onEditChange(e.target.value)}
-              rows={20}
+              rows={24}
               className="font-mono text-[12px]"
             />
           </div>
