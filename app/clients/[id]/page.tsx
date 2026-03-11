@@ -70,6 +70,15 @@ type VisibilitySnapshot = {
   total_impressions: number;
 };
 
+type ClientSummary = {
+  total_clicks: number;
+  total_impressions: number;
+  avg_position: number | null;
+  avg_ctr: number | null;
+  top_clicks: Array<{ keyword: string; clicks: number; impressions: number; position: number }>;
+  top_impressions: Array<{ keyword: string; clicks: number; impressions: number; position: number }>;
+};
+
 type ClientFull = {
   id: string; name: string; url?: string; sector?: string; brand_name?: string;
   tone_of_voice?: string; usp?: string; products_services?: string;
@@ -106,6 +115,7 @@ export default function ClientPage() {
   // Monitoraggio filters
   const [monFilter, setMonFilter] = useState<"all" | "top10" | "incalo" | "opportunita">("all");
   const [visibilityHistory, setVisibilityHistory] = useState<VisibilitySnapshot[]>([]);
+  const [summary, setSummary] = useState<ClientSummary | null>(null);
 
   // keyword controls
   const [newKw, setNewKw]       = useState("");
@@ -129,7 +139,10 @@ export default function ClientPage() {
   async function load() {
     setLoading(true); setError(null);
     try {
-      const r = await apiFetch(`/api/clients/${clientId}`);
+      const [r, sumRes] = await Promise.all([
+        apiFetch(`/api/clients/${clientId}`),
+        apiFetch(`/api/clients/${clientId}/summary`),
+      ]);
       if (!r.ok) throw new Error("Cliente non trovato");
       const data: ClientFull = await r.json();
       setClient(data);
@@ -141,6 +154,7 @@ export default function ClientPage() {
         gsc_property: data.gsc_property || "",
         language_code: data.language_code || "it", location_code: data.location_code ?? 2380,
       });
+      if (sumRes.ok) setSummary(await sumRes.json());
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Errore caricamento");
     } finally { setLoading(false); }
@@ -484,6 +498,48 @@ export default function ClientPage() {
 
           {!editMode ? (
             <>
+              {/* ── Summary GSC (sempre visibile) ── */}
+              {summary && summary.total_clicks > 0 && (
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-4 gap-3">
+                    <SummaryKpi label="Click (28gg)"      value={summary.total_clicks.toLocaleString("it-IT")} />
+                    <SummaryKpi label="Impressioni (28gg)" value={summary.total_impressions.toLocaleString("it-IT")} />
+                    <SummaryKpi label="Posizione media"   value={summary.avg_position ? `#${summary.avg_position}` : "—"} />
+                    <SummaryKpi label="CTR medio"         value={summary.avg_ctr ? `${summary.avg_ctr}%` : "—"} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <p className="text-[10px] font-medium text-[#ababab] uppercase tracking-wide mb-3">Top 5 per click</p>
+                      <div className="flex flex-col gap-2">
+                        {summary.top_clicks.map((kw) => (
+                          <div key={kw.keyword} className="flex items-center justify-between">
+                            <span className="text-[12px] text-[#333] truncate flex-1 mr-3">{kw.keyword}</span>
+                            <div className="flex items-center gap-3 text-[11px] text-[#ababab] shrink-0">
+                              <span className="font-medium text-[#1a1a1a]">{kw.clicks.toLocaleString("it-IT")} click</span>
+                              <span>#{kw.position?.toFixed(1)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-[10px] font-medium text-[#ababab] uppercase tracking-wide mb-3">Top 5 per impressioni</p>
+                      <div className="flex flex-col gap-2">
+                        {summary.top_impressions.map((kw) => (
+                          <div key={kw.keyword} className="flex items-center justify-between">
+                            <span className="text-[12px] text-[#333] truncate flex-1 mr-3">{kw.keyword}</span>
+                            <div className="flex items-center gap-3 text-[11px] text-[#ababab] shrink-0">
+                              <span className="font-medium text-[#1a1a1a]">{kw.impressions.toLocaleString("it-IT")} imp</span>
+                              <span>#{kw.position?.toFixed(1)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              )}
+
               {/* ── KPI bar (sempre visibile) ── */}
               {monKpi.totale > 0 && (
                 <div className="grid grid-cols-4 gap-3">
@@ -1436,6 +1492,15 @@ function OnboardingSteps({ hasKeywords, hasGsc, hasBrief }: {
           Genera il primo brief SEO dalla tab Keyword
         </OnboardingStep>
       </div>
+    </div>
+  );
+}
+
+function SummaryKpi({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[#e8e8e8] bg-white p-4">
+      <p className="text-[10px] font-medium text-[#ababab] uppercase tracking-wide mb-1.5">{label}</p>
+      <p className="text-[18px] font-semibold text-[#1a1a1a]">{value}</p>
     </div>
   );
 }

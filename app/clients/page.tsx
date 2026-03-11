@@ -10,12 +10,19 @@ import { apiFetch } from "@/lib/api";
 type Client = {
   id: string;
   name: string;
+  url?: string;
   sector?: string;
   tone_of_voice?: string;
   total_keywords: number;
   keywords_crescita: number;
   keywords_calo: number;
   last_sync: string | null;
+  // Metriche GSC
+  clicks_curr: number;
+  impressions_curr: number;
+  avg_position: number | null;
+  clicks_trend: number | null;
+  impressions_trend: number | null;
 };
 
 type NewClientForm = {
@@ -226,21 +233,50 @@ export default function ClientsPage() {
                   </p>
                 </div>
 
-                {/* Centro — trend keyword */}
-                <div className="flex items-center gap-2 mx-6">
-                  {c.keywords_crescita > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-green-50 text-green-600 border border-green-200">
-                      ↑ {c.keywords_crescita}
-                    </span>
-                  )}
-                  {c.keywords_calo > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-50 text-red-600 border border-red-200">
-                      ↓ {c.keywords_calo}
-                    </span>
-                  )}
-                  {c.keywords_crescita === 0 && c.keywords_calo === 0 && (
+                {/* Centro — metriche GSC + trend */}
+                <div className="flex items-center gap-4 mx-6">
+                  {c.clicks_curr > 0 ? (
+                    <>
+                      <div className="flex flex-col items-center">
+                        <span className="text-[13px] font-semibold text-[#1a1a1a]">
+                          {c.clicks_curr.toLocaleString("it-IT")}
+                        </span>
+                        <span className="text-[10px] text-[#ababab]">click</span>
+                        {c.clicks_trend !== null && <TrendPct value={c.clicks_trend} />}
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-[13px] font-semibold text-[#1a1a1a]">
+                          {c.impressions_curr.toLocaleString("it-IT")}
+                        </span>
+                        <span className="text-[10px] text-[#ababab]">imp</span>
+                        {c.impressions_trend !== null && <TrendPct value={c.impressions_trend} />}
+                      </div>
+                      {c.avg_position && (
+                        <div className="flex flex-col items-center">
+                          <span className="text-[13px] font-semibold text-[#1a1a1a]">
+                            #{c.avg_position}
+                          </span>
+                          <span className="text-[10px] text-[#ababab]">pos. media</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        {c.keywords_crescita > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-600 border border-green-200">
+                            ↑ {c.keywords_crescita}
+                          </span>
+                        )}
+                        {c.keywords_calo > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-600 border border-red-200">
+                            ↓ {c.keywords_calo}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  ) : (
                     <span className="text-[11px] text-[#c0c0c0]">
-                      {c.total_keywords > 0 ? `${c.total_keywords} keyword` : "Nessuna keyword"}
+                      {c.total_keywords > 0
+                        ? `${c.total_keywords} keyword · nessun dato GSC`
+                        : "Nessuna keyword"}
                     </span>
                   )}
                 </div>
@@ -311,5 +347,15 @@ function KpiCard({ label, value, color }: { label: string; value: number; color?
       <p className="text-[10px] font-medium text-[#ababab] uppercase tracking-wide mb-1.5">{label}</p>
       <p className={`text-[22px] font-semibold ${color ?? "text-[#1a1a1a]"}`}>{value}</p>
     </div>
+  );
+}
+
+function TrendPct({ value }: { value: number }) {
+  if (value === 0) return null;
+  const positive = value > 0;
+  return (
+    <span className={`text-[10px] font-medium ${positive ? "text-green-600" : "text-red-500"}`}>
+      {positive ? "+" : ""}{value}%
+    </span>
   );
 }
