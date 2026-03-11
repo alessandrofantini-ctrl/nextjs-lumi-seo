@@ -49,6 +49,7 @@ type KW = {
   cluster?: string; intent?: string; priority?: string;
   search_volume?: number; volume_updated_at?: string;
   published_url?: string;
+  planned_month?: string;
   page_position?: number; page_clicks?: number; page_impressions?: number;
   page_ctr?: number; page_updated_at?: string;
 };
@@ -183,7 +184,7 @@ export default function ClientPage() {
     } finally { setAddingKw(false); }
   }
 
-  async function updateKeyword(kwId: string, fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume" | "published_url">>) {
+  async function updateKeyword(kwId: string, fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume" | "published_url" | "planned_month">>) {
     await apiFetch(`/api/clients/${clientId}/keywords/${kwId}`, {
       method: "PATCH",
       body: JSON.stringify(fields),
@@ -1058,7 +1059,7 @@ function FilterTab({ active, onClick, children }: {
 function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
   kw: KW;
   clientId: string;
-  onUpdate: (fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume" | "published_url">>) => void;
+  onUpdate: (fields: Partial<Pick<KW, "status" | "cluster" | "intent" | "priority" | "search_volume" | "published_url" | "planned_month">>) => void;
   onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -1134,6 +1135,15 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
             className="text-[10px] text-[#2563eb] bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 shrink-0"
           >
             🔗
+          </span>
+        )}
+
+        {/* Planned month indicator */}
+        {kw.planned_month && (
+          <span className="text-[10px] text-[#737373] bg-[#f0f0ef] border border-[#e0e0e0] rounded px-1.5 py-0.5 shrink-0">
+            {new Date(kw.planned_month).toLocaleDateString("it-IT", {
+              month: "short", year: "numeric"
+            })}
           </span>
         )}
 
@@ -1220,6 +1230,22 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
               <option value="media">Media</option>
               <option value="bassa">Bassa</option>
             </select>
+          </div>
+
+          {/* Mese di lavorazione */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-[#ababab] font-medium uppercase tracking-wide">
+              Mese di lavorazione
+            </span>
+            <input
+              type="month"
+              className="text-[12px] text-[#333] border border-[#e0e0e0] rounded-md px-2 py-1 bg-white focus:outline-none focus:border-[#999] w-40"
+              value={kw.planned_month ? kw.planned_month.substring(0, 7) : ""}
+              onChange={(e) => {
+                const val = e.target.value || "";
+                onUpdate({ planned_month: val });
+              }}
+            />
           </div>
 
           {/* Volume mensile */}
