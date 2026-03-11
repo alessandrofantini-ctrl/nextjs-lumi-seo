@@ -23,9 +23,10 @@ function SeoForm() {
   const [intent, setIntent]     = useState("Informativo");
   const [maxComp, setMaxComp]   = useState(6);
   const [schema, setSchema]     = useState(true);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-  const [result, setResult]     = useState<{ brief_output: string; competitors_analysed: number } | null>(null);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [result, setResult]         = useState<{ brief_output: string; competitors_analysed: number } | null>(null);
+  const [statusUpdated, setStatusUpdated] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/clients")
@@ -37,7 +38,7 @@ function SeoForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!keyword.trim()) { setError("Inserisci la keyword principale."); return; }
-    setLoading(true); setError(null); setResult(null);
+    setLoading(true); setError(null); setResult(null); setStatusUpdated(false);
     try {
       const r = await apiFetch("/api/seo/analyse", {
         method: "POST",
@@ -47,7 +48,30 @@ function SeoForm() {
         }),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore analisi"); }
-      setResult(await r.json());
+      const data = await r.json();
+      setResult(data);
+      // Auto-aggiornamento status → brief_done se keyword era "planned"
+      if (clientId && keyword) {
+        try {
+          const kwRes = await apiFetch(`/api/clients/${clientId}`);
+          if (kwRes.ok) {
+            const clientData = await kwRes.json();
+            const kw = (clientData.keyword_history ?? []).find(
+              (k: { keyword: string }) =>
+                k.keyword.toLowerCase() === keyword.toLowerCase()
+            );
+            if (kw && kw.status === "planned") {
+              await apiFetch(`/api/clients/${clientId}/keywords/${kw.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({ status: "brief_done" }),
+              });
+              setStatusUpdated(true);
+            }
+          }
+        } catch {
+          // Silenzioso — non blocca il flusso
+        }
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Errore analisi SEO");
     } finally { setLoading(false); }
@@ -136,8 +160,18 @@ function SeoForm() {
               {result.brief_output}
             </pre>
             {clientId && (
-              <div className="mt-3 text-right">
-                <Link href={`/clients/${clientId}`} className="text-[12px] text-[#737373] hover:text-[#1a1a1a] underline underline-offset-2">
+              <div className="mt-3 flex items-center justify-between">
+                {statusUpdated ? (
+                  <p className="text-[11px] text-green-600">
+                    ✓ Status keyword aggiornato a &ldquo;Brief pronto&rdquo;
+                  </p>
+                ) : (
+                  <span />
+                )}
+                <Link
+                  href={`/clients/${clientId}`}
+                  className="text-[12px] text-[#737373] hover:text-[#1a1a1a] underline underline-offset-2"
+                >
                   ← Torna al cliente
                 </Link>
               </div>
