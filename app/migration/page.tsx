@@ -26,7 +26,7 @@ type LanguageRule = {
   consolidated_target_domain_id?: string;
 };
 
-type MatchType = "exact" | "slug" | "gpt" | "no_match" | "eliminated" | "consolidated";
+type MatchType = "exact" | "slug" | "gpt" | "no_match" | "eliminated" | "consolidated" | "homepage";
 
 type MigrationResult = {
   old_url: string;
@@ -47,6 +47,7 @@ type MigrationStats = {
   matched: number;
   no_match: number;
   eliminated: number;
+  homepage: number;
   stats: {
     exact: number;
     slug: number;
@@ -54,6 +55,7 @@ type MigrationStats = {
     no_match: number;
     eliminated: number;
     consolidated: number;
+    homepage: number;
   };
 };
 
@@ -174,12 +176,13 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 
 function MatchTypeBadge({ type }: { type: MatchType }) {
   const map: Record<MatchType, { label: string; cls: string }> = {
-    exact:        { label: "Esatto",      cls: "bg-[#f0f0ef] text-[#1a1a1a] border-[#d9d9d9]" },
-    slug:         { label: "Slug",        cls: "bg-blue-50 text-blue-700 border-blue-200" },
-    gpt:          { label: "GPT",         cls: "bg-purple-50 text-purple-700 border-purple-200" },
-    no_match:     { label: "Nessuno",     cls: "bg-red-50 text-red-500 border-red-200" },
-    eliminated:   { label: "Eliminata",   cls: "bg-red-100 text-red-700 border-red-300" },
-    consolidated: { label: "Consolidata", cls: "bg-orange-50 text-orange-600 border-orange-200" },
+    exact:        { label: "Esatto",       cls: "bg-[#dcfce7] text-[#15803d] border-[#bbf7d0]" },
+    slug:         { label: "Slug",         cls: "bg-[#dbeafe] text-[#1d4ed8] border-[#bfdbfe]" },
+    gpt:          { label: "GPT",          cls: "bg-[#ede9fe] text-[#6d28d9] border-[#ddd6fe]" },
+    no_match:     { label: "No match",     cls: "bg-[#f4f4f3] text-[#888]    border-[#e8e8e8]" },
+    eliminated:   { label: "Eliminato",    cls: "bg-[#fee2e2] text-[#b91c1c] border-[#fecaca]" },
+    consolidated: { label: "Consolidato",  cls: "bg-[#fef9c3] text-[#a16207] border-[#fef08a]" },
+    homepage:     { label: "→ Homepage",   cls: "bg-[#f0fdf4] text-[#166534] border-[#bbf7d0]" },
   };
   const { label, cls } = map[type] ?? map.no_match;
   return (
@@ -248,6 +251,10 @@ export default function MigrationPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Archiviazione
+  const [savedMigrationId, setSavedMigrationId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
   // ── Gestione newDomains ────────────────────────────────────────────────────
 
   function addDomain() {
@@ -288,6 +295,36 @@ export default function MigrationPage() {
     newDomains.length > 0 &&
     newDomains.every((d) => d.domain && d.csv_file);
 
+  // ── Salvataggio automatico migrazione ─────────────────────────────────────
+
+  async function saveMigration(res: MigrationResult[], statsData: MigrationStats) {
+    setSaving(true);
+    try {
+      const name = `${oldDomain} — ${new Date().toLocaleDateString("it-IT")}`;
+      const r = await apiFetch("/api/migrations", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          old_domain:   oldDomain,
+          new_domains:  newDomains.map((d) => ({ domain: d.domain, label: d.label })),
+          results:      res.map((r) => ({
+            old_url:    r.old_url,
+            new_url:    r.new_url,
+            match_type: r.match_type,
+            confidence: r.confidence,
+          })),
+          total_urls:   statsData.total,
+          matched_urls: statsData.matched,
+        }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setSavedMigrationId(data.id);
+      }
+    } catch { /* silenzioso — non blocca l'utente */ }
+    finally { setSaving(false); }
+  }
+
   // ── Avvia analisi ──────────────────────────────────────────────────────────
 
   async function handleAnalyze() {
@@ -297,6 +334,7 @@ export default function MigrationPage() {
     setError(null);
     setLoadingStep(0);
     setDomainFilter(null);
+    setSavedMigrationId(null);
 
     const formData = new FormData();
     formData.append("old_csv", oldFile!);
@@ -324,14 +362,17 @@ export default function MigrationPage() {
       }
       const data = await r.json();
       setResults(data.results);
-      setStats({
+      const statsData: MigrationStats = {
         total: data.total,
         matched: data.matched,
         no_match: data.no_match,
         eliminated: data.eliminated ?? 0,
+        homepage: data.homepage ?? 0,
         stats: data.stats,
-      });
+      };
+      setStats(statsData);
       setStep("results");
+      saveMigration(data.results, statsData);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Errore analisi");
       setStep("config");
@@ -362,7 +403,7 @@ export default function MigrationPage() {
   const filteredResults = results.filter((r) => {
     if (filter === "certain" && r.confidence < 80) return false;
     if (filter === "review" && (r.confidence <= 0 || r.confidence >= 80)) return false;
-    if (filter === "nomatch" && r.match_type !== "no_match") return false;
+    if (filter === "nomatch" && r.match_type !== "homepage") return false;
     if (domainFilter !== null && r.target_domain !== domainFilter) return false;
     return true;
   });
@@ -657,7 +698,13 @@ export default function MigrationPage() {
           <div className="flex flex-col gap-6">
 
             {/* KPI cards */}
-            <div className={`grid gap-4 ${stats.eliminated > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
+            <div className={`grid gap-4 ${
+              [stats.eliminated > 0, stats.homepage > 0].filter(Boolean).length === 2
+                ? "grid-cols-6"
+                : [stats.eliminated > 0, stats.homepage > 0].some(Boolean)
+                ? "grid-cols-5"
+                : "grid-cols-4"
+            }`}>
               <Card className="p-4">
                 <p className="text-[11px] text-[#8f8f8f] uppercase tracking-wide font-medium">Totale pagine</p>
                 <p className="text-[26px] font-semibold text-[#1a1a1a] mt-1">{stats.total}</p>
@@ -666,15 +713,26 @@ export default function MigrationPage() {
                 <p className="text-[11px] text-[#8f8f8f] uppercase tracking-wide font-medium">Matched</p>
                 <p className="text-[26px] font-semibold text-green-600 mt-1">{stats.matched}</p>
               </Card>
-              <Card className="p-4">
-                <p className="text-[11px] text-[#8f8f8f] uppercase tracking-wide font-medium">No match</p>
-                <p className="text-[26px] font-semibold text-red-500 mt-1">{stats.no_match}</p>
-              </Card>
+              {stats.no_match > 0 && (
+                <Card className="p-4">
+                  <p className="text-[11px] text-[#8f8f8f] uppercase tracking-wide font-medium">No match</p>
+                  <p className="text-[26px] font-semibold text-red-500 mt-1">{stats.no_match}</p>
+                </Card>
+              )}
               {stats.eliminated > 0 && (
                 <Card className="p-4">
                   <p className="text-[11px] text-[#8f8f8f] uppercase tracking-wide font-medium">Eliminate</p>
                   <p className="text-[26px] font-semibold text-red-600 mt-1">{stats.eliminated}</p>
                 </Card>
+              )}
+              {stats.homepage > 0 && (
+                <div className="rounded-lg border border-[#f0f0f0] bg-white p-4">
+                  <p className="text-[10.5px] font-medium text-[#ababab] uppercase tracking-wide mb-1">
+                    → Homepage
+                  </p>
+                  <p className="text-[26px] font-semibold text-[#166534] mt-1">{stats.homepage}</p>
+                  <p className="text-[11px] text-[#ababab] mt-0.5">redirect fallback</p>
+                </div>
               )}
               <Card className="p-4">
                 <p className="text-[11px] text-[#8f8f8f] uppercase tracking-wide font-medium">Confidenza media</p>
@@ -690,7 +748,7 @@ export default function MigrationPage() {
                     { key: "all",     label: `Tutti (${stats.total})` },
                     { key: "certain", label: `Certi >80% (${results.filter((r) => r.confidence >= 80).length})` },
                     { key: "review",  label: `Da rivedere (${results.filter((r) => r.confidence > 0 && r.confidence < 80).length})` },
-                    { key: "nomatch", label: `No match (${stats.no_match})` },
+                    { key: "nomatch", label: `→ Homepage (${stats.homepage})` },
                   ] as { key: FilterType; label: string }[]
                 ).map(({ key, label }) => (
                   <button
@@ -708,6 +766,12 @@ export default function MigrationPage() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
+                {saving && (
+                  <span className="text-[11px] text-[#ababab]">Salvataggio…</span>
+                )}
+                {savedMigrationId && !saving && (
+                  <span className="text-[11px] text-[#22c55e]">✓ Archiviata</span>
+                )}
                 <Btn
                   variant="ghost"
                   onClick={() => {
@@ -764,7 +828,8 @@ export default function MigrationPage() {
               <Badge>Slug: {stats.stats.slug}</Badge>
               <Badge>GPT: {stats.stats.gpt}</Badge>
               {stats.stats.consolidated > 0 && <Badge>Consolidato: {stats.stats.consolidated}</Badge>}
-              <Badge>Nessuno: {stats.stats.no_match}</Badge>
+              {stats.stats.homepage > 0 && <Badge>Homepage: {stats.stats.homepage}</Badge>}
+              {stats.stats.no_match > 0 && <Badge>Nessuno: {stats.stats.no_match}</Badge>}
               {stats.stats.eliminated > 0 && <Badge>Eliminato: {stats.stats.eliminated}</Badge>}
             </div>
 
