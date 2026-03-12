@@ -8,6 +8,7 @@ const geist = Geist({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Lumi SEO Suite",
   description: "Tool interno per la gestione SEO",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({

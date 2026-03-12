@@ -9,14 +9,29 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
-const NAV = [
-  { href: "/clients",   label: "Clienti",     icon: Users           },
-  { href: "/calendar",  label: "Calendario",  icon: Calendar        },
-  { href: "/seo",       label: "Analisi SEO", icon: BarChart2       },
-  { href: "/briefs",    label: "Brief",        icon: FileText        },
-  { href: "/writer",    label: "Redattore",   icon: PenLine         },
-  { href: "/articles",  label: "Articoli",    icon: BookOpen        },
-  { href: "/migration", label: "Migrazione",  icon: ArrowLeftRight  },
+const NAV_GROUPS = [
+  {
+    label: "Principale",
+    items: [
+      { href: "/clients",  label: "Clienti",    icon: Users    },
+      { href: "/calendar", label: "Calendario", icon: Calendar },
+    ],
+  },
+  {
+    label: "Contenuti",
+    items: [
+      { href: "/seo",      label: "Analisi SEO", icon: BarChart2      },
+      { href: "/briefs",   label: "Brief",        icon: FileText       },
+      { href: "/writer",   label: "Redattore",   icon: PenLine        },
+      { href: "/articles", label: "Articoli",    icon: BookOpen       },
+    ],
+  },
+  {
+    label: "Strumenti",
+    items: [
+      { href: "/migration", label: "Migrazione", icon: ArrowLeftRight },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -31,55 +46,117 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-52 shrink-0 flex flex-col bg-white border-r border-[#e8e8e8] h-full">
+    <aside className="w-48 shrink-0 flex flex-col h-full"
+           style={{ background: "var(--lumi-sidebar-bg)" }}>
 
-      {/* User avatar */}
+      {/* Logo + user avatar */}
       <UserAvatar />
 
       {/* Nav */}
-      <nav className="flex-1 p-2 flex flex-col gap-0.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + "/");
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={[
-                "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
-                active
-                  ? "bg-[#f0f0ef] text-[#1a1a1a] font-medium"
-                  : "text-[#737373] hover:text-[#1a1a1a] hover:bg-[#f5f5f4]",
-              ].join(" ")}
-            >
-              <Icon size={15} strokeWidth={active ? 2 : 1.7} />
-              {label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-2 py-1 overflow-y-auto">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p style={{
+              fontSize: 9.5,
+              fontWeight: 600,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.25)",
+              padding: "10px 10px 4px",
+            }}>
+              {group.label}
+            </p>
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || pathname.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "7px 10px",
+                    borderRadius: 6,
+                    marginBottom: 1,
+                    fontSize: 12.5,
+                    background: active ? "rgba(99,102,241,0.18)" : "transparent",
+                    color: active ? "#a5b4fc" : "rgba(255,255,255,0.5)",
+                    fontWeight: active ? 500 : 400,
+                    transition: "all 0.1s",
+                    textDecoration: "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
+                      (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.8)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = "transparent";
+                      (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.5)";
+                    }
+                  }}
+                >
+                  <Icon size={14} strokeWidth={active ? 2 : 1.7} />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Active client */}
       <ActiveClient />
 
-      {/* Bottom */}
-      <div className="p-2 border-t border-[#e8e8e8] flex flex-col gap-0.5">
+      {/* Footer */}
+      <div style={{
+        padding: "8px",
+        borderTop: "1px solid var(--lumi-sidebar-border)",
+      }}>
         <Link
           href="/impostazioni"
-          className={[
-            "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] transition-colors",
-            pathname === "/impostazioni"
-              ? "bg-[#f0f0ef] text-[#1a1a1a] font-medium"
-              : "text-[#ababab] hover:text-[#737373] hover:bg-[#f5f5f4]",
-          ].join(" ")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "7px 10px",
+            borderRadius: 6,
+            fontSize: 12.5,
+            color: pathname === "/impostazioni" ? "#a5b4fc" : "rgba(255,255,255,0.35)",
+            textDecoration: "none",
+          }}
         >
-          <Settings size={15} strokeWidth={1.7} />
+          <Settings size={14} strokeWidth={1.7} />
           Impostazioni
         </Link>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-[#ababab] hover:text-red-500 hover:bg-red-50 transition-colors w-full text-left"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "7px 10px",
+            borderRadius: 6,
+            width: "100%",
+            fontSize: 12.5,
+            color: "rgba(255,255,255,0.35)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "#fca5a5";
+            (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.1)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.35)";
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+          }}
         >
-          <LogOut size={15} strokeWidth={1.7} />
+          <LogOut size={14} strokeWidth={1.7} />
           Esci
         </button>
       </div>
@@ -108,14 +185,56 @@ function UserAvatar() {
     }
     load();
   }, []);
+
   return (
-    <div className="flex items-center gap-2.5 px-3 py-4 border-b border-[#e8e8e8] mb-2">
-      <div className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0">
-        <span className="text-[10px] font-semibold text-white">{initials}</span>
+    <div style={{
+      padding: "14px 14px 12px",
+      borderBottom: "1px solid var(--lumi-sidebar-border)",
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+    }}>
+      {/* Logo geometrico Lumi */}
+      <div style={{
+        width: 26,
+        height: 26,
+        borderRadius: 7,
+        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M4 2.5V11.5H10.5" stroke="white" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </div>
-      <span className="text-[12px] font-medium text-[#333] truncate">
-        Lumi SEO Suite
+      <span style={{
+        fontSize: 13,
+        fontWeight: 600,
+        color: "rgba(255,255,255,0.9)",
+        letterSpacing: "-0.01em",
+      }}>
+        Lumi SEO
       </span>
+      {/* Initials badge utente */}
+      <div style={{
+        marginLeft: "auto",
+        width: 24,
+        height: 24,
+        borderRadius: "50%",
+        background: "rgba(99,102,241,0.35)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 9,
+        fontWeight: 700,
+        color: "#a5b4fc",
+        flexShrink: 0,
+      }}>
+        {initials}
+      </div>
     </div>
   );
 }
@@ -136,11 +255,31 @@ function ActiveClient() {
   }, [pathname]);
   if (!clientName) return null;
   return (
-    <div className="mx-3 mb-3 px-3 py-2.5 rounded-lg bg-[#f7f7f6] border border-[#e8e8e8]">
-      <p className="text-[9px] font-medium text-[#ababab] uppercase tracking-wide mb-0.5">
+    <div style={{
+      margin: "0 8px 8px",
+      padding: "8px 10px",
+      borderRadius: 7,
+      background: "rgba(255,255,255,0.05)",
+      border: "1px solid rgba(255,255,255,0.08)",
+    }}>
+      <p style={{
+        fontSize: 9,
+        fontWeight: 600,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        color: "rgba(255,255,255,0.3)",
+        marginBottom: 2,
+      }}>
         Progetto attivo
       </p>
-      <p className="text-[12px] font-semibold text-[#1a1a1a] truncate">
+      <p style={{
+        fontSize: 12,
+        fontWeight: 500,
+        color: "rgba(255,255,255,0.75)",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}>
         {clientName}
       </p>
     </div>
