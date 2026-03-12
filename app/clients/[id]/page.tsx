@@ -20,12 +20,12 @@ const LOCATION_OPTIONS = [
   { value: 2724, label: "Spagna" },
 ];
 
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  backlog:    { label: "In lista",     color: "#8f8f8f", bg: "#f5f5f4", border: "#e0e0e0" },
-  planned:    { label: "Pianificata",  color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
-  brief_done: { label: "Brief pronto", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-  written:    { label: "Scritta",      color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
-  published:  { label: "Pubblicata",   color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+const STATUS_CFG: Record<string, { label: string; color: string }> = {
+  backlog:    { label: "In lista",     color: "bg-[#f4f4f3] text-[#555] border-[#e8e8e8]" },
+  planned:    { label: "Pianificata",  color: "bg-[#fef9c3] text-[#a16207] border-[#fef08a]" },
+  brief_done: { label: "Brief pronto", color: "bg-[#e0e7ff] text-[#4338ca] border-[#c7d2fe]" },
+  written:    { label: "Scritta",      color: "bg-[#ede9fe] text-[#6d28d9] border-[#ddd6fe]" },
+  published:  { label: "Pubblicata",   color: "bg-[#dcfce7] text-[#15803d] border-[#bbf7d0]" },
 };
 const STATUS_ORDER = ["backlog", "planned", "brief_done", "written", "published"];
 
@@ -975,8 +975,7 @@ export default function ClientPage() {
                                   </td>
                                   <td className="px-3 py-3 text-center">
                                     <span
-                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border"
-                                      style={{ color: sCfg.color, background: sCfg.bg, borderColor: sCfg.border }}
+                                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${sCfg.color}`}
                                     >
                                       {sCfg.label}
                                     </span>
@@ -1163,8 +1162,7 @@ function KeywordRow({ kw, clientId, onUpdate, onDelete }: {
           value={s}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => { e.stopPropagation(); onUpdate({ status: e.target.value }); }}
-          style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}
-          className="text-[11px] font-medium px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none shrink-0"
+          className={`text-[11px] font-medium px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none shrink-0 ${cfg.color}`}
         >
           {STATUS_ORDER.map((sv) => (
             <option key={sv} value={sv}>{STATUS_CFG[sv].label}</option>

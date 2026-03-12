@@ -1,13 +1,40 @@
 @import "tailwindcss";
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar        { width: 5px; height: 5px; }
-::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { background: rgba(0,0,0,.14); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.25); }
+:root {
+  --lumi-purple:       #6366f1;
+  --lumi-purple-dark:  #4f46e5;
+  --lumi-purple-muted: rgba(99,102,241,0.12);
+  --lumi-sidebar-bg:   #0f1117;
+  --lumi-sidebar-border: rgba(255,255,255,0.07);
+}
 
-/* ── Form elements ── */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(0,0,0,.18); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.3); }
+
 input, textarea, select, button { font-family: inherit; font-size: inherit; }
 
-/* ── Selection ── */
-::selection { background: rgba(107, 90, 230, .15); }
+::selection { background: rgba(99,102,241,.18); }
+
+/* Tabelle dense — usato in tutta l'app */
+.table-dense th {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  padding: 7px 12px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+  white-space: nowrap;
+}
+.table-dense td {
+  font-size: 12px;
+  padding: 7px 12px;
+  border-bottom: 1px solid #f5f5f5;
+  color: #1a1a1a;
+}
+.table-dense tr:last-child td { border-bottom: none; }
+.table-dense tr:hover td { background: #fafafa; }

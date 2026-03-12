@@ -421,6 +421,51 @@ const [volumeRefreshResult, setVolumeRefreshResult] = useState<{
 - `ClientFull` (→ `EditForm` via Omit) in `app/clients/[id]/page.tsx`
 Renderizzati come Input testo + Select con LOCATION_OPTIONS prima della sezione GSC.
 
+## Design System (Task 9 — redesign SaaS)
+
+### CSS custom properties (`app/globals.css`)
+```css
+--lumi-purple: #6366f1
+--lumi-purple-dark: #4f46e5
+--lumi-purple-muted: rgba(99,102,241,0.18)
+--lumi-sidebar-bg: #0f1117
+--lumi-sidebar-border: rgba(255,255,255,0.07)
+```
+
+### Sidebar scura (`components/Sidebar.tsx`)
+- Background `var(--lumi-sidebar-bg)` (`#0f1117`), bordi `var(--lumi-sidebar-border)`
+- `NAV_GROUPS`: 3 sezioni — Principale (Clienti, Calendario), Contenuti (SEO, Brief, Redattore, Articoli), Strumenti (Migrazione)
+- Label sezione: `fontSize: 9.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)"`
+- Item attivo: `background: "rgba(99,102,241,0.18)"`, `color: "#a5b4fc"`, `fontWeight: 500`
+- Hover via `onMouseEnter`/`onMouseLeave` inline (Tailwind non gestisce hover su dark bg con condizionale runtime)
+- `UserAvatar`: logo gradiente L-path + "Lumi SEO" + initials badge (right-aligned)
+- Footer: Impostazioni link + Esci button con hover rosso via inline handlers
+
+### Badge semantici (`components/ui.tsx`)
+`<Badge variant="...">` — varianti: `default | blue | green | amber | red | purple`
+```typescript
+default: "bg-[#f4f4f3] text-[#555] border-[#e8e8e8]"
+blue:    "bg-[#e0e7ff] text-[#4338ca] border-[#c7d2fe]"
+green:   "bg-[#dcfce7] text-[#15803d] border-[#bbf7d0]"
+amber:   "bg-[#fef9c3] text-[#a16207] border-[#fef08a]"
+red:     "bg-[#fee2e2] text-[#b91c1c] border-[#fecaca]"
+purple:  "bg-[#ede9fe] text-[#6d28d9] border-[#ddd6fe]"
+```
+
+### STATUS_CFG — tipo aggiornato
+`Record<string, { label: string; color: string }>` — il campo `color` è una stringa Tailwind
+(es. `"bg-[#dcfce7] text-[#15803d] border-[#bbf7d0]"`).
+**Non** più 3 campi separati `color/bg/border` come inline styles.
+Usato con `className={... + " " + cfg.color}` — mai `style={{}}`.
+Definito in `clients/[id]/page.tsx` e replicato in `calendar/page.tsx`.
+
+### Tabelle dense
+Classe `.table-dense` in `globals.css` per tabelle compatte (th/td padding ridotto, font 12px).
+
+### Favicon
+`public/favicon.svg` — rettangolo viola `#6366f1` rx=8 con L-path bianca (logo Lumi).
+Referenziato in `app/layout.tsx` via `metadata.icons.icon`.
+
 ## Convenzioni
 
 - Componenti UI condivisi → `components/ui.tsx` (non creare nuovi file per elementi base)

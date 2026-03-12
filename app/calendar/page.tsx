@@ -5,12 +5,12 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  backlog:    { label: "In lista",     color: "#8f8f8f", bg: "#f5f5f4", border: "#e0e0e0" },
-  planned:    { label: "Pianificata",  color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
-  brief_done: { label: "Brief pronto", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-  written:    { label: "Scritta",      color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
-  published:  { label: "Pubblicata",   color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+const STATUS_CFG: Record<string, { label: string; color: string }> = {
+  backlog:    { label: "In lista",     color: "bg-[#f4f4f3] text-[#555] border-[#e8e8e8]" },
+  planned:    { label: "Pianificata",  color: "bg-[#fef9c3] text-[#a16207] border-[#fef08a]" },
+  brief_done: { label: "Brief pronto", color: "bg-[#e0e7ff] text-[#4338ca] border-[#c7d2fe]" },
+  written:    { label: "Scritta",      color: "bg-[#ede9fe] text-[#6d28d9] border-[#ddd6fe]" },
+  published:  { label: "Pubblicata",   color: "bg-[#dcfce7] text-[#15803d] border-[#bbf7d0]" },
 };
 
 type CalendarKeyword = {
@@ -54,12 +54,7 @@ function KeywordPill({ kw }: { kw: CalendarKeyword }) {
         onDragStart={(e) => {
           e.dataTransfer.setData("keyword_id", kw.id);
         }}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer hover:opacity-80 transition-opacity"
-        style={{
-          color: sCfg.color,
-          background: sCfg.bg,
-          borderColor: sCfg.border,
-        }}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border cursor-pointer hover:opacity-80 transition-opacity ${sCfg.color}`}
       >
         <span className="text-[9px] text-[#ababab]">{kw.clients.name}</span>
         {kw.keyword}
@@ -354,12 +349,7 @@ export default function CalendarPage() {
                         </td>
                         <td className="py-2 px-3">
                           <span
-                            className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border"
-                            style={{
-                              color: sCfg.color,
-                              background: sCfg.bg,
-                              borderColor: sCfg.border,
-                            }}
+                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border ${sCfg.color}`}
                           >
                             {sCfg.label}
                           </span>
