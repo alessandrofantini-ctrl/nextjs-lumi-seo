@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Users, BarChart2, PenLine, Settings, LogOut,
-  ArrowLeftRight, Calendar, FileText, BookOpen,
+  ArrowLeftRight, Calendar, FileText, BookOpen, Archive,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -29,7 +29,8 @@ const NAV_GROUPS = [
   {
     label: "Strumenti",
     items: [
-      { href: "/migration", label: "Migrazione", icon: ArrowLeftRight },
+      { href: "/migration",  label: "Migrazione",       icon: ArrowLeftRight },
+      { href: "/migrations", label: "Archivio redirect", icon: Archive        },
     ],
   },
 ];

@@ -54,6 +54,7 @@ Ordine nav esatto:
 5. Redattore → /writer — `PenLine`
 6. Articoli → /articles — `BookOpen`
 7. Migrazione → /migration — `ArrowLeftRight`
+8. Archivio redirect → /migrations — `Archive`
 
 In fondo (separati da border-t):
 - Impostazioni → /impostazioni — `Settings`
@@ -255,6 +256,40 @@ type ClientOption = {
 - POST body include `client_id: clientId || null`
 - Graceful degradation: se nessun cliente selezionato, il redattore funziona come prima
 
+### 19. Pagina Migrazioni archiviate (app/migrations/page.tsx)
+
+```typescript
+type MigrationRecord = {
+  id: string;
+  name: string;
+  old_domain: string;
+  new_domains: Array<{ domain: string; label?: string }>;
+  total_urls: number;
+  matched_urls: number;
+  created_at: string;
+};
+```
+
+- Fetch `GET /api/migrations` al mount
+- Lista `MigrationRow` per ogni record (in `Card` con `divide-y`)
+- **MigrationRow**: nome · dominio vecchio · data | matched/total + % | Riesporta CSV | Elimina
+- **Riesporta CSV**: `GET /api/migrations/{id}` → `POST /api/migration/export-csv` con `{ results: full.results, old_domain: full.old_domain }`; download blob CSV
+- **Elimina**: conferma inline "Eliminare definitivamente?" + `DELETE /api/migrations/{id}` + rimozione locale
+- Skeleton loader 3 righe durante caricamento
+- Empty state: "Nessuna migrazione archiviata."
+
+### Salvataggio automatico migrazione (app/migration/page.tsx)
+
+Dopo aver ricevuto i risultati dall'analisi (`setStep("results")`), chiama automaticamente:
+```typescript
+saveMigration(data.results, statsData)
+```
+- `saveMigration` è silenzioso: non blocca l'utente in caso di errore
+- Mostra badge discreto nei controlli risultati: "Salvataggio…" / "✓ Archiviata"
+- `savedMigrationId` e `saving` stati aggiunti alla pagina
+- Salva risultati semplificati: `{ old_url, new_url, match_type, confidence }`
+- Usa `POST /api/migrations`
+
 ### 10. Tipi Migrazione
 
 ```typescript
@@ -280,13 +315,13 @@ type MigrationResult = {
   target_domain: string | null;   // dominio di destinazione
   target_label: string | null;    // label opzionale del dominio
   confidence: number;
-  match_type: "exact" | "slug" | "gpt" | "no_match" | "eliminated" | "consolidated";
+  match_type: "exact" | "slug" | "gpt" | "no_match" | "eliminated" | "consolidated" | "homepage";
   reason: string | null;
 };
 
 type MigrationStats = {
-  total: number; matched: number; no_match: number; eliminated: number;
-  stats: { exact: number; slug: number; gpt: number; no_match: number; eliminated: number; consolidated: number };
+  total: number; matched: number; no_match: number; eliminated: number; homepage: number;
+  stats: { exact: number; slug: number; gpt: number; no_match: number; eliminated: number; consolidated: number; homepage: number };
 };
 ```
 
@@ -434,7 +469,7 @@ Renderizzati come Input testo + Select con LOCATION_OPTIONS prima della sezione 
 
 ### Sidebar scura (`components/Sidebar.tsx`)
 - Background `var(--lumi-sidebar-bg)` (`#0f1117`), bordi `var(--lumi-sidebar-border)`
-- `NAV_GROUPS`: 3 sezioni — Principale (Clienti, Calendario), Contenuti (SEO, Brief, Redattore, Articoli), Strumenti (Migrazione)
+- `NAV_GROUPS`: 3 sezioni — Principale (Clienti, Calendario), Contenuti (SEO, Brief, Redattore, Articoli), Strumenti (Migrazione, Archivio redirect)
 - Label sezione: `fontSize: 9.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)"`
 - Item attivo: `background: "rgba(99,102,241,0.18)"`, `color: "#a5b4fc"`, `fontWeight: 500`
 - Hover via `onMouseEnter`/`onMouseLeave` inline (Tailwind non gestisce hover su dark bg con condizionale runtime)
