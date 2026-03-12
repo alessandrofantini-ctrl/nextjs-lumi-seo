@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Users, BarChart2, PenLine, Settings, LogOut,
-  ArrowLeftRight, Calendar, FileText, BookOpen, Archive,
+  ArrowLeftRight, Calendar, FileText, BookOpen, Archive, ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const NAV_GROUPS = [
   {
@@ -35,15 +36,56 @@ const NAV_GROUPS = [
   },
 ];
 
+const ADMIN_NAV_ITEM = { href: "/admin", label: "Amministrazione", icon: ShieldCheck };
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { isAdmin } = useCurrentUser();
 
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  function NavLink({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) {
+    const active = pathname === href || pathname.startsWith(href + "/");
+    return (
+      <Link
+        href={href}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "7px 10px",
+          borderRadius: 6,
+          marginBottom: 1,
+          fontSize: 12.5,
+          background: active ? "rgba(99,102,241,0.18)" : "transparent",
+          color: active ? "#a5b4fc" : "rgba(255,255,255,0.5)",
+          fontWeight: active ? 500 : 400,
+          transition: "all 0.1s",
+          textDecoration: "none",
+        }}
+        onMouseEnter={(e) => {
+          if (!active) {
+            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
+            (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.8)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!active) {
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+            (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.5)";
+          }
+        }}
+      >
+        <Icon size={14} strokeWidth={active ? 2 : 1.7} />
+        {label}
+      </Link>
+    );
   }
 
   return (
@@ -67,46 +109,28 @@ export default function Sidebar() {
             }}>
               {group.label}
             </p>
-            {group.items.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href || pathname.startsWith(href + "/");
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "7px 10px",
-                    borderRadius: 6,
-                    marginBottom: 1,
-                    fontSize: 12.5,
-                    background: active ? "rgba(99,102,241,0.18)" : "transparent",
-                    color: active ? "#a5b4fc" : "rgba(255,255,255,0.5)",
-                    fontWeight: active ? 500 : 400,
-                    transition: "all 0.1s",
-                    textDecoration: "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
-                      (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.8)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      (e.currentTarget as HTMLElement).style.background = "transparent";
-                      (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.5)";
-                    }
-                  }}
-                >
-                  <Icon size={14} strokeWidth={active ? 2 : 1.7} />
-                  {label}
-                </Link>
-              );
-            })}
+            {group.items.map((item) => (
+              <NavLink key={item.href} {...item} />
+            ))}
           </div>
         ))}
+
+        {/* Link Admin — visibile solo per admin */}
+        {isAdmin && (
+          <div>
+            <p style={{
+              fontSize: 9.5,
+              fontWeight: 600,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.25)",
+              padding: "10px 10px 4px",
+            }}>
+              Admin
+            </p>
+            <NavLink {...ADMIN_NAV_ITEM} />
+          </div>
+        )}
       </nav>
 
       {/* Active client */}

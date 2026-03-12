@@ -56,6 +56,9 @@ Ordine nav esatto:
 7. Migrazione → /migration — `ArrowLeftRight`
 8. Archivio redirect → /migrations — `Archive`
 
+Sezione "Admin" (visibile solo per admin):
+9. Amministrazione → /admin — `ShieldCheck`
+
 In fondo (separati da border-t):
 - Impostazioni → /impostazioni — `Settings`
 - Esci — `LogOut`
@@ -500,6 +503,34 @@ Classe `.table-dense` in `globals.css` per tabelle compatte (th/td padding ridot
 ### Favicon
 `public/favicon.svg` — rettangolo viola `#6366f1` rx=8 con L-path bianca (logo Lumi).
 Referenziato in `app/layout.tsx` via `metadata.icons.icon`.
+
+### 20. Sistema multi-utente
+
+#### Hook `useCurrentUser` (hooks/useCurrentUser.ts)
+```typescript
+type UserProfile = { id: string; email: string; role: "admin" | "specialist"; full_name: string };
+function useCurrentUser(): { user: UserProfile | null; loading: boolean; isAdmin: boolean }
+```
+- Chiama `GET /api/auth/me` al mount
+- Usato da `Sidebar.tsx` per mostrare link Admin e da `app/admin/page.tsx`
+
+#### Sidebar — link Admin
+- Importa `ShieldCheck` da lucide-react e `useCurrentUser` dal hook
+- Sezione "Admin" con `NavLink` verso `/admin` — visibile solo se `isAdmin === true`
+- `NavLink` estratto come componente locale per riuso
+
+#### Pagina Admin (app/admin/page.tsx)
+- Accesso negato con `Alert type="error"` se `!isAdmin`
+- Due tab: **Utenti** e **Assegnazioni**
+- **Tab Utenti**:
+  - Form nuovo utente: email, password, nome, ruolo → `POST /api/admin/users`
+  - Lista utenti: nome/email · data · badge ruolo · toggle ruolo · elimina
+  - Toggle ruolo: `PATCH /api/admin/users/{id}` con `{ role: newRole }`
+  - Elimina: conferma inline → `DELETE /api/admin/users/{id}`
+- **Tab Assegnazioni**:
+  - Lista clienti con owner e `<select>` per assegnare specialist
+  - `PATCH /api/admin/clients/{id}/assign` con `{ assigned_to: userId | null }`
+  - Aggiornamento ottimistico della lista locale
 
 ## Convenzioni
 
