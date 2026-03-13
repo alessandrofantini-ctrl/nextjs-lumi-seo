@@ -34,13 +34,20 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-7 h-7 rounded-md bg-[#1a1a1a] flex items-center justify-center">
-            <span className="text-[12px] font-bold text-white">L</span>
-          </div>
-          <span className="text-base font-semibold text-[#1a1a1a] tracking-tight">
-            Lumi SEO Suite
-          </span>
+        <div className="flex items-center justify-center mb-8">
+          <svg width="180" height="52" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad-login" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#6366f1"/>
+                <stop offset="100%" stopColor="#38bdf8"/>
+              </linearGradient>
+            </defs>
+            <path d="M6 35 Q20 7 38 27" stroke="url(#grad-login)" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+            <circle cx="38" cy="27" r="3.5" fill="#38bdf8"/>
+            <circle cx="6" cy="35" r="2.2" fill="#6366f1" opacity="0.55"/>
+            <text x="52" y="28" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="300" fill="#1a1a1a" letterSpacing="2.5">orbita</text>
+            <text x="54" y="43" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="300" fill="#6366f1" letterSpacing="2">LUMI SEO SUITE</text>
+          </svg>
         </div>
 
         {/* Card */}

@@ -217,35 +217,24 @@ function UserAvatar() {
       borderBottom: "1px solid var(--lumi-sidebar-border)",
       display: "flex",
       alignItems: "center",
-      gap: 9,
+      justifyContent: "space-between",
     }}>
-      {/* Logo geometrico Lumi */}
-      <div style={{
-        width: 26,
-        height: 26,
-        borderRadius: 7,
-        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M4 2.5V11.5H10.5" stroke="white" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </div>
-      <span style={{
-        fontSize: 13,
-        fontWeight: 600,
-        color: "rgba(255,255,255,0.9)",
-        letterSpacing: "-0.01em",
-      }}>
-        Lumi SEO
-      </span>
+      {/* Logo Orbita */}
+      <svg width="110" height="36" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad-sidebar" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#6366f1"/>
+            <stop offset="100%" stopColor="#38bdf8"/>
+          </linearGradient>
+        </defs>
+        <path d="M6 35 Q20 7 38 27" stroke="url(#grad-sidebar)" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+        <circle cx="38" cy="27" r="3.5" fill="#38bdf8"/>
+        <circle cx="6" cy="35" r="2.2" fill="#6366f1" opacity="0.55"/>
+        <text x="52" y="28" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="300" fill="white" letterSpacing="2.5">orbita</text>
+        <text x="54" y="43" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="300" fill="#6366f1" letterSpacing="2">LUMI SEO SUITE</text>
+      </svg>
       {/* Initials badge utente */}
       <div style={{
-        marginLeft: "auto",
         width: 24,
         height: 24,
         borderRadius: "50%",

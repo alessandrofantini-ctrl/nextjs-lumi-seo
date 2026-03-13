@@ -1,4 +1,4 @@
-/* Componenti UI condivisi — design system Lumi SEO */
+/* Componenti UI condivisi — design system Orbita */
 
 export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
