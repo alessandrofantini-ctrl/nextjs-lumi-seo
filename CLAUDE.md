@@ -504,6 +504,42 @@ Classe `.table-dense` in `globals.css` per tabelle compatte (th/td padding ridot
 `public/favicon.svg` — rettangolo viola `#6366f1` rx=8 con L-path bianca (logo Lumi).
 Referenziato in `app/layout.tsx` via `metadata.icons.icon`.
 
+### 19. Analisi SEO asincrona (app/seo/page.tsx)
+
+#### Flusso polling
+1. `handleSubmit` chiama `POST /api/seo/analyse` → riceve `{ job_id }` immediato → avvia `startPolling(job_id)`.
+2. `startPolling(id)` imposta un `setInterval` da 3s che chiama `GET /api/seo/jobs/{id}`.
+3. Quando `job.status === "done"`: stop poll, popola `brief`, `competitors`, `briefId`, aggiorna status keyword.
+4. Quando `job.status === "error"`: stop poll, mostra errore.
+5. Il ref interval è in `pollRef = useRef<ReturnType<typeof setInterval> | null>(null)` — cleanup su unmount tramite `useEffect(() => () => clearInterval(pollRef.current), [])`.
+
+#### JobStatusDot
+Componente `function JobStatusDot({ status })` — `div` circolare 8px con colori:
+- `pending` → `bg-[#d0d0d0]`
+- `running` → `bg-[#6366f1] animate-pulse`
+- `done` → `bg-[#22c55e]`
+- `error` → `bg-[#ef4444]`
+
+#### loadJobResult(id)
+Funzione async che chiama `GET /api/seo/jobs/{id}`, verifica `status === "done"` e popola gli stati `brief`, `competitors`, `briefId`, `jobStatus`.
+
+#### "Analisi recenti"
+- Fetch `GET /api/seo/jobs` al mount → `setRecentJobs`
+- Mostra fino a 5 job con `JobStatusDot`, keyword, market
+- Bottone "Carica →" (job done) chiama `loadJobResult`
+- Bottone "Monitora" (job pending/running) riprende `startPolling`
+- Visibile solo se `recentJobs.length > 0`, sopra il form
+
+#### Stati principali
+```typescript
+jobId:      string | null          // UUID del job corrente
+jobStatus:  "idle"|"pending"|"running"|"done"|"error"
+pollRef:    useRef<ReturnType<typeof setInterval> | null>
+brief:      string | null          // brief_output
+briefId:    string | null          // brief_id in tabella briefs
+competitors: number                // competitors_analysed
+recentJobs: RecentJob[]
+```
 ### 20. Sistema multi-utente
 
 #### Hook `useCurrentUser` (hooks/useCurrentUser.ts)
