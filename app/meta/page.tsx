@@ -65,7 +65,11 @@ export default function MetaPage() {
       const form = new FormData();
       form.append("file", file);
       const r = await apiFetch("/api/meta/parse", { method: "POST", body: form });
-      if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore parsing"); }
+      if (!r.ok) {
+        let msg = "Errore durante il parsing del documento.";
+        try { const d = await r.json(); msg = d.detail || d.message || msg; } catch {}
+        throw new Error(msg);
+      }
       const data: ParsedPage[] = await r.json();
       if (!data.length) throw new Error("Nessuna sezione trovata nel documento.");
       setParsed(data);
@@ -84,7 +88,11 @@ export default function MetaPage() {
         method: "POST",
         body: JSON.stringify(parsed),
       });
-      if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Errore generazione"); }
+      if (!r.ok) {
+        let msg = "Errore durante la generazione dei meta tag.";
+        try { const d = await r.json(); msg = d.detail || d.message || msg; } catch {}
+        throw new Error(msg);
+      }
       const data: MetaPage[] = await r.json();
       setMetas(data);
       setStep("results");
@@ -122,7 +130,11 @@ export default function MetaPage() {
         method: "POST",
         body: JSON.stringify({ pages: metas }),
       });
-      if (!r.ok) { setError("Errore esportazione."); return; }
+      if (!r.ok) {
+        let msg = "Errore durante l'esportazione.";
+        try { const d = await r.json(); msg = d.detail || d.message || msg; } catch {}
+        setError(msg); return;
+      }
       const blob = await r.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
@@ -139,7 +151,7 @@ export default function MetaPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Meta Generator"
-        subtitle="Carica il file testi del sito. Il sistema rilever\u00e0 le pagine e generer\u00e0 meta title e description ottimizzati."
+        subtitle="Carica il file testi del sito. Il sistema rileverà le pagine e genererà meta title e description ottimizzati."
       />
 
       <div className="flex-1 overflow-y-auto bg-[#f7f7f6]">
