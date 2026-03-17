@@ -119,7 +119,7 @@ export default function ClientsPage() {
   async function loadClients() {
     setLoading(true);
     try {
-      const r = await apiFetch("/api/dashboard");
+      const r = await apiFetch("/api/clients");
       if (!r.ok) throw new Error("Errore caricamento clienti");
       const data = await r.json();
       setClients(Array.isArray(data) ? data : []);
@@ -256,7 +256,7 @@ export default function ClientsPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cerca per nome o settore\u2026"
+                placeholder="Cerca per nome o settore…"
                 style={{
                   flex: 1, padding: "8px 12px", fontSize: 13,
                   border: "1px solid #e8e8e8", borderRadius: 8,
@@ -538,9 +538,9 @@ function ClientCard({ client: c, health }: { client: Client & { health: Health }
                   }} />
                 </div>
                 <p style={{ fontSize: 10, color: "#888" }}>
-                  <span style={{ color: "#16a34a" }}>\u2191{c.keywords_crescita}</span>
+                  <span style={{ color: "#16a34a" }}>↑{c.keywords_crescita}</span>
                   {" "}
-                  <span style={{ color: "#dc2626" }}>\u2193{c.keywords_calo}</span>
+                  <span style={{ color: "#dc2626" }}>↓{c.keywords_calo}</span>
                 </p>
               </>
             )}
