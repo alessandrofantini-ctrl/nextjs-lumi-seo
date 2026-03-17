@@ -32,6 +32,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/migration",  label: "Migrazione",       icon: ArrowLeftRight },
       { href: "/migrations", label: "Archivio redirect", icon: Archive        },
+      { href: "/meta",       label: "Meta Generator",  icon: FileText       },
     ],
   },
 ];
