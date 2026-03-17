@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { PageHeader, Section, Btn, Alert } from "@/components/ui";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchForm } from "@/lib/api";
 
 // ── Tipi ─────────────────────────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ export default function MetaPage() {
     try {
       const form = new FormData();
       form.append("file", file);
-      const r = await apiFetch("/api/meta/parse", { method: "POST", body: form });
+      const r = await apiFetchForm("/api/meta/parse", form);
       if (!r.ok) {
         let msg = "Errore durante il parsing del documento.";
         try { const d = await r.json(); msg = d.detail || d.message || msg; } catch {}
