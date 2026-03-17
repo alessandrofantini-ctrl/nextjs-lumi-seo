@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 0;
+
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Label, Input, Textarea, Select, Btn, Alert } from "@/components/ui";
@@ -119,7 +121,10 @@ export default function ClientsPage() {
   async function loadClients() {
     setLoading(true);
     try {
-      const r = await apiFetch("/api/clients");
+      const r = await apiFetch("/api/clients", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       if (!r.ok) throw new Error("Errore caricamento clienti");
       const data = await r.json();
       setClients(Array.isArray(data) ? data : []);
