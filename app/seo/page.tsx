@@ -252,7 +252,7 @@ function SeoForm() {
             <div>
               <Label>Cliente (opzionale)</Label>
               <Select value={clientId} onChange={(e) => setClientId(e.target.value)}>
-                <option value="">\u2014 Nessun profilo \u2014</option>
+                <option value="">— Nessun profilo —</option>
                 {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
             </div>
