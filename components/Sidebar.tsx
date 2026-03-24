@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   Users, BarChart2, PenLine, Settings, LogOut,
-  ArrowLeftRight, Calendar, FileText, BookOpen, Archive, ShieldCheck,
+  ArrowLeftRight, Calendar, FileText, BookOpen, Archive, ShieldCheck, FileSpreadsheet,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -21,9 +21,10 @@ const NAV_GROUPS = [
   {
     label: "Contenuti",
     items: [
-      { href: "/seo",      label: "Analisi SEO", icon: BarChart2      },
-      { href: "/briefs",   label: "Brief",        icon: FileText       },
-      { href: "/writer",   label: "Redattore",   icon: PenLine        },
+      { href: "/seo",          label: "Analisi SEO",  icon: BarChart2       },
+      { href: "/briefs",       label: "Brief",         icon: FileText        },
+      { href: "/batch-brief",  label: "Brief Batch",   icon: FileSpreadsheet },
+      { href: "/writer",       label: "Redattore",    icon: PenLine         },
       { href: "/articles", label: "Articoli",    icon: BookOpen       },
     ],
   },
