@@ -51,10 +51,11 @@ Ordine nav esatto:
 2. Calendario → /calendar — `Calendar`
 3. Analisi SEO → /seo — `BarChart2`
 4. Brief → /briefs — `FileText`
-5. Redattore → /writer — `PenLine`
-6. Articoli → /articles — `BookOpen`
-7. Migrazione → /migration — `ArrowLeftRight`
-8. Archivio redirect → /migrations — `Archive`
+5. Brief Batch → /batch-brief — `FileSpreadsheet`
+6. Redattore → /writer — `PenLine`
+7. Articoli → /articles — `BookOpen`
+8. Migrazione → /migration — `ArrowLeftRight`
+9. Archivio redirect → /migrations — `Archive`
 
 Sezione "Admin" (visibile solo per admin):
 9. Amministrazione → /admin — `ShieldCheck`
@@ -567,6 +568,24 @@ function useCurrentUser(): { user: UserProfile | null; loading: boolean; isAdmin
   - Lista clienti con owner e `<select>` per assegnare specialist
   - `PATCH /api/admin/clients/{id}/assign` con `{ assigned_to: userId | null }`
   - Aggiornamento ottimistico della lista locale
+
+### 22. Pagina Brief Batch (app/batch-brief/page.tsx)
+
+- Cliente obbligatorio — form bloccato (`opacity-50 pointer-events-none`) finché non selezionato
+- **Input dual-mode** toggle "Testo libero" / "Importa Excel":
+  - Testo libero: textarea `keyword | https://url` con debounce 400ms → `parseTextarea()` → `parsedRows`
+  - Importa Excel: file input `.xlsx`, `parseXlsx(file)` con SheetJS — auto-detect colonne (`query/keyword/kw` e `url/address/pagina/link`), max 20 righe, Alert warn se file troncato
+  - Preview tabella con colonne Keyword / URL pagina; per Excel mostra prime 5 righe + "N altre…"
+- **Configurazione** (colonna destra):
+  - Select mercato, intento, competitor (3/5/10 default 5)
+  - Slider margine % (0–60%, step 5, default 20): `lo = max(300, avg_wc*(1+(m-10)/100))`, `hi = max(lo+150, avg_wc*(1+(m+10)/100))`
+  - Select range fallback (450–750 / 550–900 / 700–1100, default 550–900)
+  - Slider max H2 (4–10, default 8)
+  - Textarea competitor prioritari (uno per riga — prepended alla lista SERP nel backend)
+- **Endpoint sincrono** `POST /api/seo/batch-brief` — nessun polling, risposta diretta per ogni keyword
+- **cancelledRef** (`useRef(false)`) — "Annulla" interrompe il loop dopo la keyword corrente
+- **Export SheetJS**: colonne ordinate `url, query, h1, lunghezza_consigliata, outline, faq_domande`; nome file `brief_batch_{cliente}_{YYYYMMDD}.xlsx`
+- Riepilogo finale: `N completate, M errori` + bottone "Scarica Excel"
 
 ## Convenzioni
 
