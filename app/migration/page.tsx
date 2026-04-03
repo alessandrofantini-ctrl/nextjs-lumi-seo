@@ -355,24 +355,44 @@ export default function MigrationPage() {
     }, 4000);
 
     try {
+      // 1. Avvia job — risponde subito con job_id (nessun timeout di rete)
       const r = await apiFetchForm("/api/migration/analyze", formData);
       if (!r.ok) {
         const d = await r.json();
         throw new Error(d.detail || "Errore analisi");
       }
-      const data = await r.json();
-      setResults(data.results);
+      const { job_id } = await r.json();
+
+      // 2. Polling ogni 3s fino a completamento
+      let data: Record<string, unknown> | null = null;
+      while (true) {
+        await new Promise((res) => setTimeout(res, 3000));
+        const sr = await apiFetch(`/api/migration/status/${job_id}`);
+        const sd = await sr.json();
+        if (sd.status === "done") {
+          data = sd;
+          break;
+        }
+        if (sd.status === "error") {
+          throw new Error(sd.detail || "Errore durante l'analisi");
+        }
+        // "running" → continua polling
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d = data! as any;
+      setResults(d.results as MigrationResult[]);
       const statsData: MigrationStats = {
-        total: data.total,
-        matched: data.matched,
-        no_match: data.no_match,
-        eliminated: data.eliminated ?? 0,
-        homepage: data.homepage ?? 0,
-        stats: data.stats,
+        total: d.total,
+        matched: d.matched,
+        no_match: d.no_match,
+        eliminated: d.eliminated ?? 0,
+        homepage: d.homepage ?? 0,
+        stats: d.stats,
       };
       setStats(statsData);
       setStep("results");
-      saveMigration(data.results, statsData);
+      saveMigration(d.results, statsData);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Errore analisi");
       setStep("config");
